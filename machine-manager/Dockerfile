@@ -11,8 +11,11 @@ RUN go mod download
 COPY src ./
 
 RUN go build -o /app
+RUN go test -c
 
-ENTRYPOINT ["go", "test"]
+RUN mv *.test /test
+
+ENTRYPOINT /test
 
 FROM test AS app
 

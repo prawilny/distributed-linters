@@ -46,6 +46,7 @@ func (c *Counter) getValue() (string, error) {
 }
 
 func (c *Counter) get(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/get")
 	value, err := c.getValue()
 	if err != nil {
 		c.respond(w, 500, map[string]string{
@@ -59,6 +60,7 @@ func (c *Counter) get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Counter) bump(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/bump")
 	valueString, err := c.getValue()
 	if err != nil {
 		c.respond(w, 500, map[string]string{
@@ -82,12 +84,24 @@ func (c *Counter) bump(w http.ResponseWriter, r *http.Request) {
 	}
 	params := make(map[string]string)
 	if !txn.Succeeded {
-		params["message"] = "bump failed"
+		params["error"] = "bump failed"
 	}
 	c.respond(w, 200, params)
 }
 
-func (c *Counter) Set(value int64) error {
+func (c *Counter) reset(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/reset")
+	err := c.set(0)
+	if err != nil {
+		c.respond(w, 500, map[string]string{
+			"error": err.Error(),
+		})
+		return
+	}
+	c.respond(w, 200, map[string]string{})
+}
+
+func (c *Counter) set(value int64) error {
 	ctx, cancelCtx := context.WithTimeout(context.Background(), requestTimeout)
 	defer cancelCtx()
 
@@ -108,10 +122,12 @@ func main() {
 		os.Exit(1)
 	}
 	counter := &Counter{etcd: cli}
-	if counter.Set(0) != nil {
+	if counter.set(0) != nil {
 		os.Exit(2)
 	}
 	http.HandleFunc("/get", counter.get)
 	http.HandleFunc("/bump", counter.bump)
+	http.HandleFunc("/reset", counter.reset)
 	http.ListenAndServe(":80", nil)
+	fmt.Println("listening on port 80")
 }

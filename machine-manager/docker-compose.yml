@@ -7,9 +7,21 @@ services:
       - ALLOW_NONE_AUTHENTICATION=yes
     ports:
       - 2379:2379
-  machine-manager:
+  manager:
     depends_on:
       - etcd
     build:
       context: .
+      target: app
+    healthcheck:
+      test: "curl 127.0.0.1:80/get"
+      interval: 5s
+      timeout: 3s
+      retries: 3
+  integration-test:
+    depends_on:
+      manager:
+        condition: service_healthy
+    build:
+      context: integration-test
       target: test
