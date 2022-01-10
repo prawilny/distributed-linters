@@ -1,0 +1,17 @@
+// dot -Kfdp architecture.dot -Tsvg > architecture.svg
+
+graph {
+    Client -- ExtLoadBalancer;
+    ExtLoadBalancer -- LoadBalancer;
+    LoadBalancer -- etcd;
+    LoadBalancer -- KubeNode;
+
+    MachineManager -- etcd;
+    MachineManager -- KubeNode;
+
+    Kubernetes -- KubeNode;
+    KubeNode -- Linter [style="dashed"];
+
+    MachineManager -- MachineSpawner;
+    MachineSpawner -- Kubernetes;
+}
