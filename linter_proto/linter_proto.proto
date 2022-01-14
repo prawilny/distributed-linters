@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+option go_package = "a/b/linter_proto";
+
+service Linter {
+    rpc Lint(LintRequest) returns (LintResponse) {}
+}
+message LintRequest {
+    string language = 1;
+    bytes content = 2;
+}
+message LintResponse {
+    message Hint {
+        string hintText = 1;
+        int32 startByte = 2;
+        int32 endByte = 3;
+    }
+    repeated Hint hints = 1;
+}
+
+service LoadBalancer {
+    rpc SetConfig(SetConfigRequest) returns (SetConfigResponse) {}
+}
+message SetConfigRequest {
+    message Weight {
+        string language = 1;
+        string version = 2;
+        float weight = 3;
+    }
+    message Worker {
+        string address = 1;
+        int32 port = 2;
+        string language = 3;
+        string version = 4;
+    }
+    repeated Worker workers = 1; 
+    repeated Weight weights = 2;
+}
+message SetConfigResponse {
+    enum Code {
+        SUCCESS = 0;
+    }
+    Code code = 1;
+}
