@@ -60,7 +60,136 @@ func (x SetConfigResponse_Code) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SetConfigResponse_Code.Descriptor instead.
 func (SetConfigResponse_Code) EnumDescriptor() ([]byte, []int) {
-	return file_linter_proto_linter_proto_proto_rawDescGZIP(), []int{3, 0}
+	return file_linter_proto_linter_proto_proto_rawDescGZIP(), []int{6, 0}
+}
+
+type AppendMachineResponse_Code int32
+
+const (
+	AppendMachineResponse_SUCCESS AppendMachineResponse_Code = 0
+)
+
+// Enum value maps for AppendMachineResponse_Code.
+var (
+	AppendMachineResponse_Code_name = map[int32]string{
+		0: "SUCCESS",
+	}
+	AppendMachineResponse_Code_value = map[string]int32{
+		"SUCCESS": 0,
+	}
+)
+
+func (x AppendMachineResponse_Code) Enum() *AppendMachineResponse_Code {
+	p := new(AppendMachineResponse_Code)
+	*p = x
+	return p
+}
+
+func (x AppendMachineResponse_Code) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AppendMachineResponse_Code) Descriptor() protoreflect.EnumDescriptor {
+	return file_linter_proto_linter_proto_proto_enumTypes[1].Descriptor()
+}
+
+func (AppendMachineResponse_Code) Type() protoreflect.EnumType {
+	return &file_linter_proto_linter_proto_proto_enumTypes[1]
+}
+
+func (x AppendMachineResponse_Code) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AppendMachineResponse_Code.Descriptor instead.
+func (AppendMachineResponse_Code) EnumDescriptor() ([]byte, []int) {
+	return file_linter_proto_linter_proto_proto_rawDescGZIP(), []int{7, 0}
+}
+
+type RemoveMachineResponse_Code int32
+
+const (
+	RemoveMachineResponse_SUCCESS RemoveMachineResponse_Code = 0
+)
+
+// Enum value maps for RemoveMachineResponse_Code.
+var (
+	RemoveMachineResponse_Code_name = map[int32]string{
+		0: "SUCCESS",
+	}
+	RemoveMachineResponse_Code_value = map[string]int32{
+		"SUCCESS": 0,
+	}
+)
+
+func (x RemoveMachineResponse_Code) Enum() *RemoveMachineResponse_Code {
+	p := new(RemoveMachineResponse_Code)
+	*p = x
+	return p
+}
+
+func (x RemoveMachineResponse_Code) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RemoveMachineResponse_Code) Descriptor() protoreflect.EnumDescriptor {
+	return file_linter_proto_linter_proto_proto_enumTypes[2].Descriptor()
+}
+
+func (RemoveMachineResponse_Code) Type() protoreflect.EnumType {
+	return &file_linter_proto_linter_proto_proto_enumTypes[2]
+}
+
+func (x RemoveMachineResponse_Code) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RemoveMachineResponse_Code.Descriptor instead.
+func (RemoveMachineResponse_Code) EnumDescriptor() ([]byte, []int) {
+	return file_linter_proto_linter_proto_proto_rawDescGZIP(), []int{8, 0}
+}
+
+type SetProportionsResponse_Code int32
+
+const (
+	SetProportionsResponse_SUCCESS SetProportionsResponse_Code = 0
+)
+
+// Enum value maps for SetProportionsResponse_Code.
+var (
+	SetProportionsResponse_Code_name = map[int32]string{
+		0: "SUCCESS",
+	}
+	SetProportionsResponse_Code_value = map[string]int32{
+		"SUCCESS": 0,
+	}
+)
+
+func (x SetProportionsResponse_Code) Enum() *SetProportionsResponse_Code {
+	p := new(SetProportionsResponse_Code)
+	*p = x
+	return p
+}
+
+func (x SetProportionsResponse_Code) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SetProportionsResponse_Code) Descriptor() protoreflect.EnumDescriptor {
+	return file_linter_proto_linter_proto_proto_enumTypes[3].Descriptor()
+}
+
+func (SetProportionsResponse_Code) Type() protoreflect.EnumType {
+	return &file_linter_proto_linter_proto_proto_enumTypes[3]
+}
+
+func (x SetProportionsResponse_Code) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SetProportionsResponse_Code.Descriptor instead.
+func (SetProportionsResponse_Code) EnumDescriptor() ([]byte, []int) {
+	return file_linter_proto_linter_proto_proto_rawDescGZIP(), []int{9, 0}
 }
 
 type LintRequest struct {
@@ -165,19 +294,208 @@ func (x *LintResponse) GetHints() []*LintResponse_Hint {
 	return nil
 }
 
+type Weight struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Language string  `protobuf:"bytes,1,opt,name=language,proto3" json:"language,omitempty"`
+	Version  string  `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	Weight   float32 `protobuf:"fixed32,3,opt,name=weight,proto3" json:"weight,omitempty"`
+}
+
+func (x *Weight) Reset() {
+	*x = Weight{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_linter_proto_linter_proto_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Weight) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Weight) ProtoMessage() {}
+
+func (x *Weight) ProtoReflect() protoreflect.Message {
+	mi := &file_linter_proto_linter_proto_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Weight.ProtoReflect.Descriptor instead.
+func (*Weight) Descriptor() ([]byte, []int) {
+	return file_linter_proto_linter_proto_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Weight) GetLanguage() string {
+	if x != nil {
+		return x.Language
+	}
+	return ""
+}
+
+func (x *Weight) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *Weight) GetWeight() float32 {
+	if x != nil {
+		return x.Weight
+	}
+	return 0
+}
+
+type Worker struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Address  string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Port     int32  `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	Language string `protobuf:"bytes,3,opt,name=language,proto3" json:"language,omitempty"`
+	Version  string `protobuf:"bytes,4,opt,name=version,proto3" json:"version,omitempty"`
+}
+
+func (x *Worker) Reset() {
+	*x = Worker{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_linter_proto_linter_proto_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Worker) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Worker) ProtoMessage() {}
+
+func (x *Worker) ProtoReflect() protoreflect.Message {
+	mi := &file_linter_proto_linter_proto_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Worker.ProtoReflect.Descriptor instead.
+func (*Worker) Descriptor() ([]byte, []int) {
+	return file_linter_proto_linter_proto_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *Worker) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+func (x *Worker) GetPort() int32 {
+	if x != nil {
+		return x.Port
+	}
+	return 0
+}
+
+func (x *Worker) GetLanguage() string {
+	if x != nil {
+		return x.Language
+	}
+	return ""
+}
+
+func (x *Worker) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+type LBWorker struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Address string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Port    int32  `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+}
+
+func (x *LBWorker) Reset() {
+	*x = LBWorker{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_linter_proto_linter_proto_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *LBWorker) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LBWorker) ProtoMessage() {}
+
+func (x *LBWorker) ProtoReflect() protoreflect.Message {
+	mi := &file_linter_proto_linter_proto_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LBWorker.ProtoReflect.Descriptor instead.
+func (*LBWorker) Descriptor() ([]byte, []int) {
+	return file_linter_proto_linter_proto_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *LBWorker) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+func (x *LBWorker) GetPort() int32 {
+	if x != nil {
+		return x.Port
+	}
+	return 0
+}
+
 type SetConfigRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Workers []*SetConfigRequest_Worker `protobuf:"bytes,1,rep,name=workers,proto3" json:"workers,omitempty"`
-	Weights []*SetConfigRequest_Weight `protobuf:"bytes,2,rep,name=weights,proto3" json:"weights,omitempty"`
+	Workers []*Worker `protobuf:"bytes,1,rep,name=workers,proto3" json:"workers,omitempty"`
+	Weights []*Weight `protobuf:"bytes,2,rep,name=weights,proto3" json:"weights,omitempty"`
 }
 
 func (x *SetConfigRequest) Reset() {
 	*x = SetConfigRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_linter_proto_linter_proto_proto_msgTypes[2]
+		mi := &file_linter_proto_linter_proto_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -190,7 +508,7 @@ func (x *SetConfigRequest) String() string {
 func (*SetConfigRequest) ProtoMessage() {}
 
 func (x *SetConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_linter_proto_linter_proto_proto_msgTypes[2]
+	mi := &file_linter_proto_linter_proto_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -203,17 +521,17 @@ func (x *SetConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetConfigRequest.ProtoReflect.Descriptor instead.
 func (*SetConfigRequest) Descriptor() ([]byte, []int) {
-	return file_linter_proto_linter_proto_proto_rawDescGZIP(), []int{2}
+	return file_linter_proto_linter_proto_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *SetConfigRequest) GetWorkers() []*SetConfigRequest_Worker {
+func (x *SetConfigRequest) GetWorkers() []*Worker {
 	if x != nil {
 		return x.Workers
 	}
 	return nil
 }
 
-func (x *SetConfigRequest) GetWeights() []*SetConfigRequest_Weight {
+func (x *SetConfigRequest) GetWeights() []*Weight {
 	if x != nil {
 		return x.Weights
 	}
@@ -231,7 +549,7 @@ type SetConfigResponse struct {
 func (x *SetConfigResponse) Reset() {
 	*x = SetConfigResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_linter_proto_linter_proto_proto_msgTypes[3]
+		mi := &file_linter_proto_linter_proto_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -244,7 +562,7 @@ func (x *SetConfigResponse) String() string {
 func (*SetConfigResponse) ProtoMessage() {}
 
 func (x *SetConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_linter_proto_linter_proto_proto_msgTypes[3]
+	mi := &file_linter_proto_linter_proto_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -257,7 +575,7 @@ func (x *SetConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetConfigResponse.ProtoReflect.Descriptor instead.
 func (*SetConfigResponse) Descriptor() ([]byte, []int) {
-	return file_linter_proto_linter_proto_proto_rawDescGZIP(), []int{3}
+	return file_linter_proto_linter_proto_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *SetConfigResponse) GetCode() SetConfigResponse_Code {
@@ -265,6 +583,194 @@ func (x *SetConfigResponse) GetCode() SetConfigResponse_Code {
 		return x.Code
 	}
 	return SetConfigResponse_SUCCESS
+}
+
+type AppendMachineResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Code AppendMachineResponse_Code `protobuf:"varint,1,opt,name=code,proto3,enum=AppendMachineResponse_Code" json:"code,omitempty"`
+}
+
+func (x *AppendMachineResponse) Reset() {
+	*x = AppendMachineResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_linter_proto_linter_proto_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AppendMachineResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AppendMachineResponse) ProtoMessage() {}
+
+func (x *AppendMachineResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_linter_proto_linter_proto_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AppendMachineResponse.ProtoReflect.Descriptor instead.
+func (*AppendMachineResponse) Descriptor() ([]byte, []int) {
+	return file_linter_proto_linter_proto_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *AppendMachineResponse) GetCode() AppendMachineResponse_Code {
+	if x != nil {
+		return x.Code
+	}
+	return AppendMachineResponse_SUCCESS
+}
+
+type RemoveMachineResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Code RemoveMachineResponse_Code `protobuf:"varint,1,opt,name=code,proto3,enum=RemoveMachineResponse_Code" json:"code,omitempty"`
+}
+
+func (x *RemoveMachineResponse) Reset() {
+	*x = RemoveMachineResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_linter_proto_linter_proto_proto_msgTypes[8]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RemoveMachineResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveMachineResponse) ProtoMessage() {}
+
+func (x *RemoveMachineResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_linter_proto_linter_proto_proto_msgTypes[8]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveMachineResponse.ProtoReflect.Descriptor instead.
+func (*RemoveMachineResponse) Descriptor() ([]byte, []int) {
+	return file_linter_proto_linter_proto_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *RemoveMachineResponse) GetCode() RemoveMachineResponse_Code {
+	if x != nil {
+		return x.Code
+	}
+	return RemoveMachineResponse_SUCCESS
+}
+
+type SetProportionsResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Code SetProportionsResponse_Code `protobuf:"varint,1,opt,name=code,proto3,enum=SetProportionsResponse_Code" json:"code,omitempty"`
+}
+
+func (x *SetProportionsResponse) Reset() {
+	*x = SetProportionsResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_linter_proto_linter_proto_proto_msgTypes[9]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SetProportionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetProportionsResponse) ProtoMessage() {}
+
+func (x *SetProportionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_linter_proto_linter_proto_proto_msgTypes[9]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetProportionsResponse.ProtoReflect.Descriptor instead.
+func (*SetProportionsResponse) Descriptor() ([]byte, []int) {
+	return file_linter_proto_linter_proto_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *SetProportionsResponse) GetCode() SetProportionsResponse_Code {
+	if x != nil {
+		return x.Code
+	}
+	return SetProportionsResponse_SUCCESS
+}
+
+type LoadBalancingProportions struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Weights []*Weight `protobuf:"bytes,1,rep,name=weights,proto3" json:"weights,omitempty"`
+}
+
+func (x *LoadBalancingProportions) Reset() {
+	*x = LoadBalancingProportions{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_linter_proto_linter_proto_proto_msgTypes[10]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *LoadBalancingProportions) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoadBalancingProportions) ProtoMessage() {}
+
+func (x *LoadBalancingProportions) ProtoReflect() protoreflect.Message {
+	mi := &file_linter_proto_linter_proto_proto_msgTypes[10]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoadBalancingProportions.ProtoReflect.Descriptor instead.
+func (*LoadBalancingProportions) Descriptor() ([]byte, []int) {
+	return file_linter_proto_linter_proto_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *LoadBalancingProportions) GetWeights() []*Weight {
+	if x != nil {
+		return x.Weights
+	}
+	return nil
 }
 
 type LintResponse_Hint struct {
@@ -280,7 +786,7 @@ type LintResponse_Hint struct {
 func (x *LintResponse_Hint) Reset() {
 	*x = LintResponse_Hint{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_linter_proto_linter_proto_proto_msgTypes[4]
+		mi := &file_linter_proto_linter_proto_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -293,7 +799,7 @@ func (x *LintResponse_Hint) String() string {
 func (*LintResponse_Hint) ProtoMessage() {}
 
 func (x *LintResponse_Hint) ProtoReflect() protoreflect.Message {
-	mi := &file_linter_proto_linter_proto_proto_msgTypes[4]
+	mi := &file_linter_proto_linter_proto_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -330,140 +836,6 @@ func (x *LintResponse_Hint) GetEndByte() int32 {
 	return 0
 }
 
-type SetConfigRequest_Weight struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Language string  `protobuf:"bytes,1,opt,name=language,proto3" json:"language,omitempty"`
-	Version  string  `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
-	Weight   float32 `protobuf:"fixed32,3,opt,name=weight,proto3" json:"weight,omitempty"`
-}
-
-func (x *SetConfigRequest_Weight) Reset() {
-	*x = SetConfigRequest_Weight{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_linter_proto_linter_proto_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *SetConfigRequest_Weight) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SetConfigRequest_Weight) ProtoMessage() {}
-
-func (x *SetConfigRequest_Weight) ProtoReflect() protoreflect.Message {
-	mi := &file_linter_proto_linter_proto_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SetConfigRequest_Weight.ProtoReflect.Descriptor instead.
-func (*SetConfigRequest_Weight) Descriptor() ([]byte, []int) {
-	return file_linter_proto_linter_proto_proto_rawDescGZIP(), []int{2, 0}
-}
-
-func (x *SetConfigRequest_Weight) GetLanguage() string {
-	if x != nil {
-		return x.Language
-	}
-	return ""
-}
-
-func (x *SetConfigRequest_Weight) GetVersion() string {
-	if x != nil {
-		return x.Version
-	}
-	return ""
-}
-
-func (x *SetConfigRequest_Weight) GetWeight() float32 {
-	if x != nil {
-		return x.Weight
-	}
-	return 0
-}
-
-type SetConfigRequest_Worker struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Address  string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Port     int32  `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	Language string `protobuf:"bytes,3,opt,name=language,proto3" json:"language,omitempty"`
-	Version  string `protobuf:"bytes,4,opt,name=version,proto3" json:"version,omitempty"`
-}
-
-func (x *SetConfigRequest_Worker) Reset() {
-	*x = SetConfigRequest_Worker{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_linter_proto_linter_proto_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *SetConfigRequest_Worker) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SetConfigRequest_Worker) ProtoMessage() {}
-
-func (x *SetConfigRequest_Worker) ProtoReflect() protoreflect.Message {
-	mi := &file_linter_proto_linter_proto_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SetConfigRequest_Worker.ProtoReflect.Descriptor instead.
-func (*SetConfigRequest_Worker) Descriptor() ([]byte, []int) {
-	return file_linter_proto_linter_proto_proto_rawDescGZIP(), []int{2, 1}
-}
-
-func (x *SetConfigRequest_Worker) GetAddress() string {
-	if x != nil {
-		return x.Address
-	}
-	return ""
-}
-
-func (x *SetConfigRequest_Worker) GetPort() int32 {
-	if x != nil {
-		return x.Port
-	}
-	return 0
-}
-
-func (x *SetConfigRequest_Worker) GetLanguage() string {
-	if x != nil {
-		return x.Language
-	}
-	return ""
-}
-
-func (x *SetConfigRequest_Worker) GetVersion() string {
-	if x != nil {
-		return x.Version
-	}
-	return ""
-}
-
 var File_linter_proto_linter_proto_proto protoreflect.FileDescriptor
 
 var file_linter_proto_linter_proto_proto_rawDesc = []byte{
@@ -482,42 +854,90 @@ var file_linter_proto_linter_proto_proto_rawDesc = []byte{
 	0x74, 0x54, 0x65, 0x78, 0x74, 0x12, 0x1c, 0x0a, 0x09, 0x73, 0x74, 0x61, 0x72, 0x74, 0x42, 0x79,
 	0x74, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x09, 0x73, 0x74, 0x61, 0x72, 0x74, 0x42,
 	0x79, 0x74, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x65, 0x6e, 0x64, 0x42, 0x79, 0x74, 0x65, 0x18, 0x03,
-	0x20, 0x01, 0x28, 0x05, 0x52, 0x07, 0x65, 0x6e, 0x64, 0x42, 0x79, 0x74, 0x65, 0x22, 0xc0, 0x02,
-	0x0a, 0x10, 0x53, 0x65, 0x74, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x12, 0x32, 0x0a, 0x07, 0x77, 0x6f, 0x72, 0x6b, 0x65, 0x72, 0x73, 0x18, 0x01, 0x20,
-	0x03, 0x28, 0x0b, 0x32, 0x18, 0x2e, 0x53, 0x65, 0x74, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x2e, 0x57, 0x6f, 0x72, 0x6b, 0x65, 0x72, 0x52, 0x07, 0x77,
-	0x6f, 0x72, 0x6b, 0x65, 0x72, 0x73, 0x12, 0x32, 0x0a, 0x07, 0x77, 0x65, 0x69, 0x67, 0x68, 0x74,
-	0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x18, 0x2e, 0x53, 0x65, 0x74, 0x43, 0x6f, 0x6e,
-	0x66, 0x69, 0x67, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x2e, 0x57, 0x65, 0x69, 0x67, 0x68,
-	0x74, 0x52, 0x07, 0x77, 0x65, 0x69, 0x67, 0x68, 0x74, 0x73, 0x1a, 0x56, 0x0a, 0x06, 0x57, 0x65,
-	0x69, 0x67, 0x68, 0x74, 0x12, 0x1a, 0x0a, 0x08, 0x6c, 0x61, 0x6e, 0x67, 0x75, 0x61, 0x67, 0x65,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x6c, 0x61, 0x6e, 0x67, 0x75, 0x61, 0x67, 0x65,
-	0x12, 0x18, 0x0a, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28,
-	0x09, 0x52, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x16, 0x0a, 0x06, 0x77, 0x65,
-	0x69, 0x67, 0x68, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x02, 0x52, 0x06, 0x77, 0x65, 0x69, 0x67,
-	0x68, 0x74, 0x1a, 0x6c, 0x0a, 0x06, 0x57, 0x6f, 0x72, 0x6b, 0x65, 0x72, 0x12, 0x18, 0x0a, 0x07,
-	0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x61,
-	0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x12, 0x0a, 0x04, 0x70, 0x6f, 0x72, 0x74, 0x18, 0x02,
-	0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x70, 0x6f, 0x72, 0x74, 0x12, 0x1a, 0x0a, 0x08, 0x6c, 0x61,
-	0x6e, 0x67, 0x75, 0x61, 0x67, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x6c, 0x61,
-	0x6e, 0x67, 0x75, 0x61, 0x67, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f,
-	0x6e, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e,
-	0x22, 0x55, 0x0a, 0x11, 0x53, 0x65, 0x74, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x52, 0x65, 0x73,
-	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x2b, 0x0a, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x0e, 0x32, 0x17, 0x2e, 0x53, 0x65, 0x74, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x52,
-	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x43, 0x6f, 0x64, 0x65, 0x52, 0x04, 0x63, 0x6f,
-	0x64, 0x65, 0x22, 0x13, 0x0a, 0x04, 0x43, 0x6f, 0x64, 0x65, 0x12, 0x0b, 0x0a, 0x07, 0x53, 0x55,
-	0x43, 0x43, 0x45, 0x53, 0x53, 0x10, 0x00, 0x32, 0x2f, 0x0a, 0x06, 0x4c, 0x69, 0x6e, 0x74, 0x65,
-	0x72, 0x12, 0x25, 0x0a, 0x04, 0x4c, 0x69, 0x6e, 0x74, 0x12, 0x0c, 0x2e, 0x4c, 0x69, 0x6e, 0x74,
-	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x0d, 0x2e, 0x4c, 0x69, 0x6e, 0x74, 0x52, 0x65,
-	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x32, 0x44, 0x0a, 0x0c, 0x4c, 0x6f, 0x61, 0x64,
-	0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x72, 0x12, 0x34, 0x0a, 0x09, 0x53, 0x65, 0x74, 0x43,
-	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x11, 0x2e, 0x53, 0x65, 0x74, 0x43, 0x6f, 0x6e, 0x66, 0x69,
-	0x67, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x12, 0x2e, 0x53, 0x65, 0x74, 0x43, 0x6f,
-	0x6e, 0x66, 0x69, 0x67, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x42, 0x12,
-	0x5a, 0x10, 0x61, 0x2f, 0x62, 0x2f, 0x6c, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x5f, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x20, 0x01, 0x28, 0x05, 0x52, 0x07, 0x65, 0x6e, 0x64, 0x42, 0x79, 0x74, 0x65, 0x22, 0x56, 0x0a,
+	0x06, 0x57, 0x65, 0x69, 0x67, 0x68, 0x74, 0x12, 0x1a, 0x0a, 0x08, 0x6c, 0x61, 0x6e, 0x67, 0x75,
+	0x61, 0x67, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x6c, 0x61, 0x6e, 0x67, 0x75,
+	0x61, 0x67, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x16, 0x0a,
+	0x06, 0x77, 0x65, 0x69, 0x67, 0x68, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x02, 0x52, 0x06, 0x77,
+	0x65, 0x69, 0x67, 0x68, 0x74, 0x22, 0x6c, 0x0a, 0x06, 0x57, 0x6f, 0x72, 0x6b, 0x65, 0x72, 0x12,
+	0x18, 0x0a, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x12, 0x0a, 0x04, 0x70, 0x6f, 0x72,
+	0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x70, 0x6f, 0x72, 0x74, 0x12, 0x1a, 0x0a,
+	0x08, 0x6c, 0x61, 0x6e, 0x67, 0x75, 0x61, 0x67, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x08, 0x6c, 0x61, 0x6e, 0x67, 0x75, 0x61, 0x67, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x76, 0x65, 0x72,
+	0x73, 0x69, 0x6f, 0x6e, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x76, 0x65, 0x72, 0x73,
+	0x69, 0x6f, 0x6e, 0x22, 0x38, 0x0a, 0x08, 0x4c, 0x42, 0x57, 0x6f, 0x72, 0x6b, 0x65, 0x72, 0x12,
+	0x18, 0x0a, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x12, 0x0a, 0x04, 0x70, 0x6f, 0x72,
+	0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x70, 0x6f, 0x72, 0x74, 0x22, 0x58, 0x0a,
+	0x10, 0x53, 0x65, 0x74, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x12, 0x21, 0x0a, 0x07, 0x77, 0x6f, 0x72, 0x6b, 0x65, 0x72, 0x73, 0x18, 0x01, 0x20, 0x03,
+	0x28, 0x0b, 0x32, 0x07, 0x2e, 0x57, 0x6f, 0x72, 0x6b, 0x65, 0x72, 0x52, 0x07, 0x77, 0x6f, 0x72,
+	0x6b, 0x65, 0x72, 0x73, 0x12, 0x21, 0x0a, 0x07, 0x77, 0x65, 0x69, 0x67, 0x68, 0x74, 0x73, 0x18,
+	0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x07, 0x2e, 0x57, 0x65, 0x69, 0x67, 0x68, 0x74, 0x52, 0x07,
+	0x77, 0x65, 0x69, 0x67, 0x68, 0x74, 0x73, 0x22, 0x55, 0x0a, 0x11, 0x53, 0x65, 0x74, 0x43, 0x6f,
+	0x6e, 0x66, 0x69, 0x67, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x2b, 0x0a, 0x04,
+	0x63, 0x6f, 0x64, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x17, 0x2e, 0x53, 0x65, 0x74,
+	0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x43,
+	0x6f, 0x64, 0x65, 0x52, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x22, 0x13, 0x0a, 0x04, 0x43, 0x6f, 0x64,
+	0x65, 0x12, 0x0b, 0x0a, 0x07, 0x53, 0x55, 0x43, 0x43, 0x45, 0x53, 0x53, 0x10, 0x00, 0x22, 0x5d,
+	0x0a, 0x15, 0x41, 0x70, 0x70, 0x65, 0x6e, 0x64, 0x4d, 0x61, 0x63, 0x68, 0x69, 0x6e, 0x65, 0x52,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x2f, 0x0a, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x1b, 0x2e, 0x41, 0x70, 0x70, 0x65, 0x6e, 0x64, 0x4d, 0x61,
+	0x63, 0x68, 0x69, 0x6e, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x43, 0x6f,
+	0x64, 0x65, 0x52, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x22, 0x13, 0x0a, 0x04, 0x43, 0x6f, 0x64, 0x65,
+	0x12, 0x0b, 0x0a, 0x07, 0x53, 0x55, 0x43, 0x43, 0x45, 0x53, 0x53, 0x10, 0x00, 0x22, 0x5d, 0x0a,
+	0x15, 0x52, 0x65, 0x6d, 0x6f, 0x76, 0x65, 0x4d, 0x61, 0x63, 0x68, 0x69, 0x6e, 0x65, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x2f, 0x0a, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x0e, 0x32, 0x1b, 0x2e, 0x52, 0x65, 0x6d, 0x6f, 0x76, 0x65, 0x4d, 0x61, 0x63,
+	0x68, 0x69, 0x6e, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x43, 0x6f, 0x64,
+	0x65, 0x52, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x22, 0x13, 0x0a, 0x04, 0x43, 0x6f, 0x64, 0x65, 0x12,
+	0x0b, 0x0a, 0x07, 0x53, 0x55, 0x43, 0x43, 0x45, 0x53, 0x53, 0x10, 0x00, 0x22, 0x5f, 0x0a, 0x16,
+	0x53, 0x65, 0x74, 0x50, 0x72, 0x6f, 0x70, 0x6f, 0x72, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x30, 0x0a, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x0e, 0x32, 0x1c, 0x2e, 0x53, 0x65, 0x74, 0x50, 0x72, 0x6f, 0x70, 0x6f, 0x72,
+	0x74, 0x69, 0x6f, 0x6e, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x43, 0x6f,
+	0x64, 0x65, 0x52, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x22, 0x13, 0x0a, 0x04, 0x43, 0x6f, 0x64, 0x65,
+	0x12, 0x0b, 0x0a, 0x07, 0x53, 0x55, 0x43, 0x43, 0x45, 0x53, 0x53, 0x10, 0x00, 0x22, 0x3d, 0x0a,
+	0x18, 0x4c, 0x6f, 0x61, 0x64, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x69, 0x6e, 0x67, 0x50, 0x72,
+	0x6f, 0x70, 0x6f, 0x72, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x12, 0x21, 0x0a, 0x07, 0x77, 0x65, 0x69,
+	0x67, 0x68, 0x74, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x07, 0x2e, 0x57, 0x65, 0x69,
+	0x67, 0x68, 0x74, 0x52, 0x07, 0x77, 0x65, 0x69, 0x67, 0x68, 0x74, 0x73, 0x32, 0x2f, 0x0a, 0x06,
+	0x4c, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x12, 0x25, 0x0a, 0x04, 0x4c, 0x69, 0x6e, 0x74, 0x12, 0x0c,
+	0x2e, 0x4c, 0x69, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x0d, 0x2e, 0x4c,
+	0x69, 0x6e, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x32, 0x44, 0x0a,
+	0x0c, 0x4c, 0x6f, 0x61, 0x64, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x72, 0x12, 0x34, 0x0a,
+	0x09, 0x53, 0x65, 0x74, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x11, 0x2e, 0x53, 0x65, 0x74,
+	0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x12, 0x2e,
+	0x53, 0x65, 0x74, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
+	0x65, 0x22, 0x00, 0x32, 0xb4, 0x02, 0x0a, 0x0e, 0x4d, 0x61, 0x63, 0x68, 0x69, 0x6e, 0x65, 0x4d,
+	0x61, 0x6e, 0x61, 0x67, 0x65, 0x72, 0x12, 0x39, 0x0a, 0x12, 0x41, 0x70, 0x70, 0x65, 0x6e, 0x64,
+	0x4c, 0x6f, 0x61, 0x64, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x72, 0x12, 0x09, 0x2e, 0x4c,
+	0x42, 0x57, 0x6f, 0x72, 0x6b, 0x65, 0x72, 0x1a, 0x16, 0x2e, 0x41, 0x70, 0x70, 0x65, 0x6e, 0x64,
+	0x4d, 0x61, 0x63, 0x68, 0x69, 0x6e, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22,
+	0x00, 0x12, 0x39, 0x0a, 0x12, 0x52, 0x65, 0x6d, 0x6f, 0x76, 0x65, 0x4c, 0x6f, 0x61, 0x64, 0x42,
+	0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x72, 0x12, 0x09, 0x2e, 0x4c, 0x42, 0x57, 0x6f, 0x72, 0x6b,
+	0x65, 0x72, 0x1a, 0x16, 0x2e, 0x52, 0x65, 0x6d, 0x6f, 0x76, 0x65, 0x4d, 0x61, 0x63, 0x68, 0x69,
+	0x6e, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x12, 0x31, 0x0a, 0x0c,
+	0x41, 0x70, 0x70, 0x65, 0x6e, 0x64, 0x4c, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x12, 0x07, 0x2e, 0x57,
+	0x6f, 0x72, 0x6b, 0x65, 0x72, 0x1a, 0x16, 0x2e, 0x41, 0x70, 0x70, 0x65, 0x6e, 0x64, 0x4d, 0x61,
+	0x63, 0x68, 0x69, 0x6e, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x12,
+	0x31, 0x0a, 0x0c, 0x52, 0x65, 0x6d, 0x6f, 0x76, 0x65, 0x4c, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x12,
+	0x07, 0x2e, 0x57, 0x6f, 0x72, 0x6b, 0x65, 0x72, 0x1a, 0x16, 0x2e, 0x52, 0x65, 0x6d, 0x6f, 0x76,
+	0x65, 0x4d, 0x61, 0x63, 0x68, 0x69, 0x6e, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x22, 0x00, 0x12, 0x46, 0x0a, 0x0e, 0x53, 0x65, 0x74, 0x50, 0x72, 0x6f, 0x70, 0x6f, 0x72, 0x74,
+	0x69, 0x6f, 0x6e, 0x73, 0x12, 0x19, 0x2e, 0x4c, 0x6f, 0x61, 0x64, 0x42, 0x61, 0x6c, 0x61, 0x6e,
+	0x63, 0x69, 0x6e, 0x67, 0x50, 0x72, 0x6f, 0x70, 0x6f, 0x72, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x1a,
+	0x17, 0x2e, 0x53, 0x65, 0x74, 0x50, 0x72, 0x6f, 0x70, 0x6f, 0x72, 0x74, 0x69, 0x6f, 0x6e, 0x73,
+	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x32, 0x58, 0x0a, 0x0e, 0x4d, 0x61,
+	0x63, 0x68, 0x69, 0x6e, 0x65, 0x53, 0x70, 0x61, 0x77, 0x6e, 0x65, 0x72, 0x12, 0x46, 0x0a, 0x0e,
+	0x53, 0x65, 0x74, 0x50, 0x72, 0x6f, 0x70, 0x6f, 0x72, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x12, 0x19,
+	0x2e, 0x4c, 0x6f, 0x61, 0x64, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x69, 0x6e, 0x67, 0x50, 0x72,
+	0x6f, 0x70, 0x6f, 0x72, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x1a, 0x17, 0x2e, 0x53, 0x65, 0x74, 0x50,
+	0x72, 0x6f, 0x70, 0x6f, 0x72, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
+	0x73, 0x65, 0x22, 0x00, 0x42, 0x12, 0x5a, 0x10, 0x61, 0x2f, 0x62, 0x2f, 0x6c, 0x69, 0x6e, 0x74,
+	0x65, 0x72, 0x5f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -532,32 +952,56 @@ func file_linter_proto_linter_proto_proto_rawDescGZIP() []byte {
 	return file_linter_proto_linter_proto_proto_rawDescData
 }
 
-var file_linter_proto_linter_proto_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_linter_proto_linter_proto_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_linter_proto_linter_proto_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_linter_proto_linter_proto_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_linter_proto_linter_proto_proto_goTypes = []interface{}{
-	(SetConfigResponse_Code)(0),     // 0: SetConfigResponse.Code
-	(*LintRequest)(nil),             // 1: LintRequest
-	(*LintResponse)(nil),            // 2: LintResponse
-	(*SetConfigRequest)(nil),        // 3: SetConfigRequest
-	(*SetConfigResponse)(nil),       // 4: SetConfigResponse
-	(*LintResponse_Hint)(nil),       // 5: LintResponse.Hint
-	(*SetConfigRequest_Weight)(nil), // 6: SetConfigRequest.Weight
-	(*SetConfigRequest_Worker)(nil), // 7: SetConfigRequest.Worker
+	(SetConfigResponse_Code)(0),      // 0: SetConfigResponse.Code
+	(AppendMachineResponse_Code)(0),  // 1: AppendMachineResponse.Code
+	(RemoveMachineResponse_Code)(0),  // 2: RemoveMachineResponse.Code
+	(SetProportionsResponse_Code)(0), // 3: SetProportionsResponse.Code
+	(*LintRequest)(nil),              // 4: LintRequest
+	(*LintResponse)(nil),             // 5: LintResponse
+	(*Weight)(nil),                   // 6: Weight
+	(*Worker)(nil),                   // 7: Worker
+	(*LBWorker)(nil),                 // 8: LBWorker
+	(*SetConfigRequest)(nil),         // 9: SetConfigRequest
+	(*SetConfigResponse)(nil),        // 10: SetConfigResponse
+	(*AppendMachineResponse)(nil),    // 11: AppendMachineResponse
+	(*RemoveMachineResponse)(nil),    // 12: RemoveMachineResponse
+	(*SetProportionsResponse)(nil),   // 13: SetProportionsResponse
+	(*LoadBalancingProportions)(nil), // 14: LoadBalancingProportions
+	(*LintResponse_Hint)(nil),        // 15: LintResponse.Hint
 }
 var file_linter_proto_linter_proto_proto_depIdxs = []int32{
-	5, // 0: LintResponse.hints:type_name -> LintResponse.Hint
-	7, // 1: SetConfigRequest.workers:type_name -> SetConfigRequest.Worker
-	6, // 2: SetConfigRequest.weights:type_name -> SetConfigRequest.Weight
-	0, // 3: SetConfigResponse.code:type_name -> SetConfigResponse.Code
-	1, // 4: Linter.Lint:input_type -> LintRequest
-	3, // 5: LoadBalancer.SetConfig:input_type -> SetConfigRequest
-	2, // 6: Linter.Lint:output_type -> LintResponse
-	4, // 7: LoadBalancer.SetConfig:output_type -> SetConfigResponse
-	6, // [6:8] is the sub-list for method output_type
-	4, // [4:6] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	15, // 0: LintResponse.hints:type_name -> LintResponse.Hint
+	7,  // 1: SetConfigRequest.workers:type_name -> Worker
+	6,  // 2: SetConfigRequest.weights:type_name -> Weight
+	0,  // 3: SetConfigResponse.code:type_name -> SetConfigResponse.Code
+	1,  // 4: AppendMachineResponse.code:type_name -> AppendMachineResponse.Code
+	2,  // 5: RemoveMachineResponse.code:type_name -> RemoveMachineResponse.Code
+	3,  // 6: SetProportionsResponse.code:type_name -> SetProportionsResponse.Code
+	6,  // 7: LoadBalancingProportions.weights:type_name -> Weight
+	4,  // 8: Linter.Lint:input_type -> LintRequest
+	9,  // 9: LoadBalancer.SetConfig:input_type -> SetConfigRequest
+	8,  // 10: MachineManager.AppendLoadBalancer:input_type -> LBWorker
+	8,  // 11: MachineManager.RemoveLoadBalancer:input_type -> LBWorker
+	7,  // 12: MachineManager.AppendLinter:input_type -> Worker
+	7,  // 13: MachineManager.RemoveLinter:input_type -> Worker
+	14, // 14: MachineManager.SetProportions:input_type -> LoadBalancingProportions
+	14, // 15: MachineSpawner.SetProportions:input_type -> LoadBalancingProportions
+	5,  // 16: Linter.Lint:output_type -> LintResponse
+	10, // 17: LoadBalancer.SetConfig:output_type -> SetConfigResponse
+	11, // 18: MachineManager.AppendLoadBalancer:output_type -> AppendMachineResponse
+	12, // 19: MachineManager.RemoveLoadBalancer:output_type -> RemoveMachineResponse
+	11, // 20: MachineManager.AppendLinter:output_type -> AppendMachineResponse
+	12, // 21: MachineManager.RemoveLinter:output_type -> RemoveMachineResponse
+	13, // 22: MachineManager.SetProportions:output_type -> SetProportionsResponse
+	13, // 23: MachineSpawner.SetProportions:output_type -> SetProportionsResponse
+	16, // [16:24] is the sub-list for method output_type
+	8,  // [8:16] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_linter_proto_linter_proto_proto_init() }
@@ -591,7 +1035,7 @@ func file_linter_proto_linter_proto_proto_init() {
 			}
 		}
 		file_linter_proto_linter_proto_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SetConfigRequest); i {
+			switch v := v.(*Weight); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -603,7 +1047,7 @@ func file_linter_proto_linter_proto_proto_init() {
 			}
 		}
 		file_linter_proto_linter_proto_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SetConfigResponse); i {
+			switch v := v.(*Worker); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -615,7 +1059,7 @@ func file_linter_proto_linter_proto_proto_init() {
 			}
 		}
 		file_linter_proto_linter_proto_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*LintResponse_Hint); i {
+			switch v := v.(*LBWorker); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -627,7 +1071,7 @@ func file_linter_proto_linter_proto_proto_init() {
 			}
 		}
 		file_linter_proto_linter_proto_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SetConfigRequest_Weight); i {
+			switch v := v.(*SetConfigRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -639,7 +1083,67 @@ func file_linter_proto_linter_proto_proto_init() {
 			}
 		}
 		file_linter_proto_linter_proto_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SetConfigRequest_Worker); i {
+			switch v := v.(*SetConfigResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_linter_proto_linter_proto_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*AppendMachineResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_linter_proto_linter_proto_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RemoveMachineResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_linter_proto_linter_proto_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SetProportionsResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_linter_proto_linter_proto_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*LoadBalancingProportions); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_linter_proto_linter_proto_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*LintResponse_Hint); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -656,10 +1160,10 @@ func file_linter_proto_linter_proto_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_linter_proto_linter_proto_proto_rawDesc,
-			NumEnums:      1,
-			NumMessages:   7,
+			NumEnums:      4,
+			NumMessages:   12,
 			NumExtensions: 0,
-			NumServices:   2,
+			NumServices:   4,
 		},
 		GoTypes:           file_linter_proto_linter_proto_proto_goTypes,
 		DependencyIndexes: file_linter_proto_linter_proto_proto_depIdxs,

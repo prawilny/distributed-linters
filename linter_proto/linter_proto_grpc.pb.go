@@ -185,3 +185,319 @@ var LoadBalancer_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "linter_proto/linter_proto.proto",
 }
+
+// MachineManagerClient is the client API for MachineManager service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type MachineManagerClient interface {
+	AppendLoadBalancer(ctx context.Context, in *LBWorker, opts ...grpc.CallOption) (*AppendMachineResponse, error)
+	RemoveLoadBalancer(ctx context.Context, in *LBWorker, opts ...grpc.CallOption) (*RemoveMachineResponse, error)
+	AppendLinter(ctx context.Context, in *Worker, opts ...grpc.CallOption) (*AppendMachineResponse, error)
+	RemoveLinter(ctx context.Context, in *Worker, opts ...grpc.CallOption) (*RemoveMachineResponse, error)
+	SetProportions(ctx context.Context, in *LoadBalancingProportions, opts ...grpc.CallOption) (*SetProportionsResponse, error)
+}
+
+type machineManagerClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewMachineManagerClient(cc grpc.ClientConnInterface) MachineManagerClient {
+	return &machineManagerClient{cc}
+}
+
+func (c *machineManagerClient) AppendLoadBalancer(ctx context.Context, in *LBWorker, opts ...grpc.CallOption) (*AppendMachineResponse, error) {
+	out := new(AppendMachineResponse)
+	err := c.cc.Invoke(ctx, "/MachineManager/AppendLoadBalancer", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *machineManagerClient) RemoveLoadBalancer(ctx context.Context, in *LBWorker, opts ...grpc.CallOption) (*RemoveMachineResponse, error) {
+	out := new(RemoveMachineResponse)
+	err := c.cc.Invoke(ctx, "/MachineManager/RemoveLoadBalancer", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *machineManagerClient) AppendLinter(ctx context.Context, in *Worker, opts ...grpc.CallOption) (*AppendMachineResponse, error) {
+	out := new(AppendMachineResponse)
+	err := c.cc.Invoke(ctx, "/MachineManager/AppendLinter", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *machineManagerClient) RemoveLinter(ctx context.Context, in *Worker, opts ...grpc.CallOption) (*RemoveMachineResponse, error) {
+	out := new(RemoveMachineResponse)
+	err := c.cc.Invoke(ctx, "/MachineManager/RemoveLinter", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *machineManagerClient) SetProportions(ctx context.Context, in *LoadBalancingProportions, opts ...grpc.CallOption) (*SetProportionsResponse, error) {
+	out := new(SetProportionsResponse)
+	err := c.cc.Invoke(ctx, "/MachineManager/SetProportions", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// MachineManagerServer is the server API for MachineManager service.
+// All implementations must embed UnimplementedMachineManagerServer
+// for forward compatibility
+type MachineManagerServer interface {
+	AppendLoadBalancer(context.Context, *LBWorker) (*AppendMachineResponse, error)
+	RemoveLoadBalancer(context.Context, *LBWorker) (*RemoveMachineResponse, error)
+	AppendLinter(context.Context, *Worker) (*AppendMachineResponse, error)
+	RemoveLinter(context.Context, *Worker) (*RemoveMachineResponse, error)
+	SetProportions(context.Context, *LoadBalancingProportions) (*SetProportionsResponse, error)
+	mustEmbedUnimplementedMachineManagerServer()
+}
+
+// UnimplementedMachineManagerServer must be embedded to have forward compatible implementations.
+type UnimplementedMachineManagerServer struct {
+}
+
+func (UnimplementedMachineManagerServer) AppendLoadBalancer(context.Context, *LBWorker) (*AppendMachineResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AppendLoadBalancer not implemented")
+}
+func (UnimplementedMachineManagerServer) RemoveLoadBalancer(context.Context, *LBWorker) (*RemoveMachineResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveLoadBalancer not implemented")
+}
+func (UnimplementedMachineManagerServer) AppendLinter(context.Context, *Worker) (*AppendMachineResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AppendLinter not implemented")
+}
+func (UnimplementedMachineManagerServer) RemoveLinter(context.Context, *Worker) (*RemoveMachineResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveLinter not implemented")
+}
+func (UnimplementedMachineManagerServer) SetProportions(context.Context, *LoadBalancingProportions) (*SetProportionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetProportions not implemented")
+}
+func (UnimplementedMachineManagerServer) mustEmbedUnimplementedMachineManagerServer() {}
+
+// UnsafeMachineManagerServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to MachineManagerServer will
+// result in compilation errors.
+type UnsafeMachineManagerServer interface {
+	mustEmbedUnimplementedMachineManagerServer()
+}
+
+func RegisterMachineManagerServer(s grpc.ServiceRegistrar, srv MachineManagerServer) {
+	s.RegisterService(&MachineManager_ServiceDesc, srv)
+}
+
+func _MachineManager_AppendLoadBalancer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LBWorker)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MachineManagerServer).AppendLoadBalancer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/MachineManager/AppendLoadBalancer",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MachineManagerServer).AppendLoadBalancer(ctx, req.(*LBWorker))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MachineManager_RemoveLoadBalancer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LBWorker)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MachineManagerServer).RemoveLoadBalancer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/MachineManager/RemoveLoadBalancer",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MachineManagerServer).RemoveLoadBalancer(ctx, req.(*LBWorker))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MachineManager_AppendLinter_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Worker)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MachineManagerServer).AppendLinter(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/MachineManager/AppendLinter",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MachineManagerServer).AppendLinter(ctx, req.(*Worker))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MachineManager_RemoveLinter_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Worker)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MachineManagerServer).RemoveLinter(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/MachineManager/RemoveLinter",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MachineManagerServer).RemoveLinter(ctx, req.(*Worker))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MachineManager_SetProportions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoadBalancingProportions)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MachineManagerServer).SetProportions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/MachineManager/SetProportions",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MachineManagerServer).SetProportions(ctx, req.(*LoadBalancingProportions))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// MachineManager_ServiceDesc is the grpc.ServiceDesc for MachineManager service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var MachineManager_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "MachineManager",
+	HandlerType: (*MachineManagerServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "AppendLoadBalancer",
+			Handler:    _MachineManager_AppendLoadBalancer_Handler,
+		},
+		{
+			MethodName: "RemoveLoadBalancer",
+			Handler:    _MachineManager_RemoveLoadBalancer_Handler,
+		},
+		{
+			MethodName: "AppendLinter",
+			Handler:    _MachineManager_AppendLinter_Handler,
+		},
+		{
+			MethodName: "RemoveLinter",
+			Handler:    _MachineManager_RemoveLinter_Handler,
+		},
+		{
+			MethodName: "SetProportions",
+			Handler:    _MachineManager_SetProportions_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "linter_proto/linter_proto.proto",
+}
+
+// MachineSpawnerClient is the client API for MachineSpawner service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type MachineSpawnerClient interface {
+	SetProportions(ctx context.Context, in *LoadBalancingProportions, opts ...grpc.CallOption) (*SetProportionsResponse, error)
+}
+
+type machineSpawnerClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewMachineSpawnerClient(cc grpc.ClientConnInterface) MachineSpawnerClient {
+	return &machineSpawnerClient{cc}
+}
+
+func (c *machineSpawnerClient) SetProportions(ctx context.Context, in *LoadBalancingProportions, opts ...grpc.CallOption) (*SetProportionsResponse, error) {
+	out := new(SetProportionsResponse)
+	err := c.cc.Invoke(ctx, "/MachineSpawner/SetProportions", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// MachineSpawnerServer is the server API for MachineSpawner service.
+// All implementations must embed UnimplementedMachineSpawnerServer
+// for forward compatibility
+type MachineSpawnerServer interface {
+	SetProportions(context.Context, *LoadBalancingProportions) (*SetProportionsResponse, error)
+	mustEmbedUnimplementedMachineSpawnerServer()
+}
+
+// UnimplementedMachineSpawnerServer must be embedded to have forward compatible implementations.
+type UnimplementedMachineSpawnerServer struct {
+}
+
+func (UnimplementedMachineSpawnerServer) SetProportions(context.Context, *LoadBalancingProportions) (*SetProportionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetProportions not implemented")
+}
+func (UnimplementedMachineSpawnerServer) mustEmbedUnimplementedMachineSpawnerServer() {}
+
+// UnsafeMachineSpawnerServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to MachineSpawnerServer will
+// result in compilation errors.
+type UnsafeMachineSpawnerServer interface {
+	mustEmbedUnimplementedMachineSpawnerServer()
+}
+
+func RegisterMachineSpawnerServer(s grpc.ServiceRegistrar, srv MachineSpawnerServer) {
+	s.RegisterService(&MachineSpawner_ServiceDesc, srv)
+}
+
+func _MachineSpawner_SetProportions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoadBalancingProportions)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MachineSpawnerServer).SetProportions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/MachineSpawner/SetProportions",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MachineSpawnerServer).SetProportions(ctx, req.(*LoadBalancingProportions))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// MachineSpawner_ServiceDesc is the grpc.ServiceDesc for MachineSpawner service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var MachineSpawner_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "MachineSpawner",
+	HandlerType: (*MachineSpawnerServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "SetProportions",
+			Handler:    _MachineSpawner_SetProportions_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "linter_proto/linter_proto.proto",
+}

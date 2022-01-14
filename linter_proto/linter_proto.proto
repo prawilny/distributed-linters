@@ -18,22 +18,27 @@ message LintResponse {
     repeated Hint hints = 1;
 }
 
+message Weight {
+    string language = 1;
+    string version = 2;
+    float weight = 3;
+}
+message Worker {
+    string address = 1;
+    int32 port = 2;
+    string language = 3;
+    string version = 4;
+}
+message LBWorker {
+    string address = 1;
+    int32 port = 2;
+}
+
 service LoadBalancer {
     rpc SetConfig(SetConfigRequest) returns (SetConfigResponse) {}
 }
 message SetConfigRequest {
-    message Weight {
-        string language = 1;
-        string version = 2;
-        float weight = 3;
-    }
-    message Worker {
-        string address = 1;
-        int32 port = 2;
-        string language = 3;
-        string version = 4;
-    }
-    repeated Worker workers = 1; 
+    repeated Worker workers = 1;
     repeated Weight weights = 2;
 }
 message SetConfigResponse {
@@ -41,4 +46,41 @@ message SetConfigResponse {
         SUCCESS = 0;
     }
     Code code = 1;
+}
+
+service MachineManager {
+    rpc AppendLoadBalancer(LBWorker) returns (AppendMachineResponse) {}
+
+    rpc RemoveLoadBalancer(LBWorker) returns (RemoveMachineResponse) {}
+
+    rpc AppendLinter(Worker) returns (AppendMachineResponse) {}
+
+    rpc RemoveLinter(Worker) returns (RemoveMachineResponse) {}
+
+    rpc SetProportions(LoadBalancingProportions) returns (SetProportionsResponse) {}
+}
+message AppendMachineResponse {
+    enum Code {
+        SUCCESS = 0;
+    }
+    Code code = 1;
+}
+message RemoveMachineResponse {
+    enum Code {
+        SUCCESS = 0;
+    }
+    Code code = 1;
+}
+message SetProportionsResponse {
+    enum Code {
+        SUCCESS = 0;
+    }
+    Code code = 1;
+}
+message LoadBalancingProportions {
+    repeated Weight weights = 1;
+}
+
+service MachineSpawner {
+    rpc SetProportions(LoadBalancingProportions) returns (SetProportionsResponse) {}
 }
