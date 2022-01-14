@@ -1,17 +1,21 @@
-// dot -Kfdp architecture.dot -Tsvg > architecture.svg
+// dot architecture.dot -Tsvg > architecture.svg
 
-graph {
-    Client -- ExtLoadBalancer;
-    ExtLoadBalancer -- LoadBalancer;
-    LoadBalancer -- etcd;
-    LoadBalancer -- KubeNode;
+digraph {
+    Client -> ExtLoadBalancer [label="http request"];
+    ExtLoadBalancer -> LoadBalancer [label="http request"];
+    LoadBalancer -> Linter [label="lint"];
 
-    MachineManager -- etcd;
-    MachineManager -- KubeNode;
+    MachineManager -> etcd[label="lastest config", dir="both"];
+    etcd -> MachineSpawner [label="watch machine list"];
+    MachineManager -> LoadBalancer[label="set LB config"];
 
-    Kubernetes -- KubeNode;
-    KubeNode -- Linter [style="dashed"];
+    Kubernetes -> Linter [style="dashed", label="manage"];
 
-    MachineManager -- MachineSpawner;
-    MachineSpawner -- Kubernetes;
+    MachineSpawner -> MachineManager[label="append/delete machine"];
+    MachineSpawner -> MachineManager[label="set LB config"];
+
+    Admin -> MachineSpawner[label="set LB config"];
+
+    Admin -> Kubernetes[label="manage deployments"];
+    Kubernetes -> etcd[label="store machine list"];
 }
