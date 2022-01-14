@@ -11,7 +11,7 @@ digraph {
 
     Kubernetes -> Linter [style="dashed", label="manage"];
 
-    MachineSpawner -> MachineManager[label="append/delete machine"];
+    MachineSpawner -> MachineManager[label="append/delete linter/LB"];
     MachineSpawner -> MachineManager[label="set LB config"];
 
     Admin -> MachineSpawner[label="set LB config"];
