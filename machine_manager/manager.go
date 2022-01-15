@@ -14,12 +14,14 @@ import (
 	etcd3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
 
-    //"k8s.io/apimachinery/pkg/api/errors"
-    //metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-    "k8s.io/client-go/kubernetes"
-    //"k8s.io/client-go/rest"
-)
+	//"k8s.io/apimachinery/pkg/api/errors"
 
+	appsv1 "k8s.io/api/apps/v1"
+	apiv1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	//"k8s.io/client-go/rest"
+)
 
 type language = string
 type version = string
@@ -76,12 +78,12 @@ func (w *WorkersInfo) getMachines() []*pb.Worker {
 		for ver, machMap := range verMap {
 			for mach := range machMap {
 				workers = append(workers, &pb.Worker{
-					Address:  mach.Address,
-					Port:     mach.Port,
-                    Attrs:    &pb.LinterAttributes {  
-                        Language: lang,
-                        Version:  ver,
-                    },
+					Address: mach.Address,
+					Port:    mach.Port,
+					Attrs: &pb.LinterAttributes{
+						Language: lang,
+						Version:  ver,
+					},
 				})
 			}
 		}
@@ -122,20 +124,21 @@ func (w *WorkersInfo) removeMachinesForLinter(lang language, ver version) {
 	if !exists1 {
 		return
 	}
-    delete(map_, ver)
-    if len(map_) == 0 {
-        delete(w.Machines, lang)
-    }
+	delete(map_, ver)
+	if len(map_) == 0 {
+		delete(w.Machines, lang)
+	}
 }
 
 var (
-    listen_addr = flag.String("address", "0.0.0.0:2137", "The Admin CLI Listen address (with port)")
+	listen_addr = flag.String("address", "0.0.0.0:2137", "The Admin CLI Listen address (with port)")
 	grpc_opts   = []grpc.DialOption{grpc.WithBlock(), grpc.WithInsecure()}
 
 	dialTimeout               = 2 * time.Second
 	requestTimeout            = 10 * time.Second
 	etcd_addrs                = []string{"localhost:2379"}
 	machine_manager_state_key = "MACHINE_MANAGER_STATE"
+	linter_port               = 33333
 )
 
 type machineManagerState struct {
@@ -145,10 +148,10 @@ type machineManagerState struct {
 
 type machineManagerServer struct {
 	pb.UnimplementedMachineManagerServer
-	state machineManagerState
-	etcd  etcd3.KV
-    client kubernetes.Clientset
-	mut   sync.Mutex
+	state  machineManagerState
+	etcd   etcd3.KV
+	client kubernetes.Clientset
+	mut    sync.Mutex
 }
 
 func makeMachineManager() machineManagerServer {
@@ -197,66 +200,71 @@ func (s *machineManagerServer) storeState() {
 	}
 }
 
-/*
-func (s *machineManagerServer) AppendLoadBalancer(ctx context.Context, req *pb.LBWorker) (*pb.AppendMachineResponse, error) {
-	s.mut.Lock()
-	defer s.mut.Unlock()
-	s.state.Load_balancers.addMachine(MachineInfo{Address: req.Address, Port: req.Port})
-	s.storeState()
-	return &pb.AppendMachineResponse{Code: pb.AppendMachineResponse_SUCCESS}, nil
-}
+func int32Ptr(i int32) *int32 { return &i }
 
-func (s *machineManagerServer) RemoveLoadBalancer(ctx context.Context, req *pb.LBWorker) (*pb.RemoveMachineResponse, error) {
-	s.mut.Lock()
-	defer s.mut.Unlock()
-	s.state.Load_balancers.removeMachine(MachineInfo{Address: req.Address, Port: req.Port})
-	s.storeState()
-	return &pb.RemoveMachineResponse{Code: pb.RemoveMachineResponse_SUCCESS}, nil
-}
-*/
-
-func (s *machineManagerServer) createLinterMachine(lang language, ver version) (MachineInfo, error) {
-    // TODO: actually create this linter
-    return MachineInfo{Address: "abcd(change this)", Port: int32(2137)}, nil
-}
-
-func (s *machineManagerServer) removeLinterMachine(info MachineInfo) {
-    // TODO: actually remove the machine
-}
-
-func (s *machineManagerServer) removeLinterMachines(lang language, ver version) {
-    map1, exists1 := s.state.Linters.Machines[lang]
-    if !exists1 {
-        return
-    }
-    map2, exists2 := map1[ver]
-    if !exists2 {
-        return
-    }
-    for info := range map2 {
-        s.removeLinterMachine(info)
-    }
+func deploymentFromLabels(lang language, ver version) appsv1.Deployment {
+	linterName := fmt.Sprintf("linter-%s-%s", lang, ver)
+	labels := map[string]string{
+		"version":  ver,
+		"language": lang,
+	}
+	return appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   linterName,
+			Labels: labels,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: int32Ptr(3),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
+			Template: apiv1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: labels,
+				},
+				Spec: apiv1.PodSpec{
+					Containers: []apiv1.Container{
+						{
+							Name:  linterName,
+							Image: linterName,
+							Ports: []apiv1.ContainerPort{
+								{
+									Name:          "http",
+									Protocol:      apiv1.ProtocolTCP,
+									ContainerPort: int32(linter_port),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 }
 
 func (s *machineManagerServer) AppendLinter(ctx context.Context, req *pb.LinterAttributes) (*pb.LinterResponse, error) {
-	s.mut.Lock()
-	defer s.mut.Unlock()
-    machine, err := s.createLinterMachine(req.Language, req.Version)
-    if err != nil {
-        return &pb.LinterResponse{Code: pb.LinterResponse_SUCCESS}, nil
-    }
-	s.state.Linters.addMachine(req.Language, req.Version, machine)
-	s.storeState()
+	ctx, cancelCtx := context.WithTimeout(context.Background(), requestTimeout)
+	defer cancelCtx()
+
+	deploymentsClient := s.client.AppsV1().Deployments(apiv1.NamespaceDefault)
+	deployment := deploymentFromLabels(req.Language, req.Version)
+	err := deploymentsClient.Delete(ctx, deployment.ObjectMeta.Name, metav1.DeleteOptions{})
+	if err != nil {
+		return &pb.LinterResponse{Code: 1}, nil
+	}
 	return &pb.LinterResponse{Code: pb.LinterResponse_SUCCESS}, nil
 }
 
 func (s *machineManagerServer) RemoveLinter(ctx context.Context, req *pb.LinterAttributes) (*pb.LinterResponse, error) {
-	s.mut.Lock()
-	defer s.mut.Unlock()
+	ctx, cancelCtx := context.WithTimeout(context.Background(), requestTimeout)
+	defer cancelCtx()
 
-    s.removeLinterMachines(req.Language, req.Version)
-    s.state.Linters.removeMachinesForLinter(req.Language, req.Version)
-	s.storeState()
+	deploymentsClient := s.client.AppsV1().Deployments(apiv1.NamespaceDefault)
+	deployment := deploymentFromLabels(req.Language, req.Version)
+	err := deploymentsClient.Delete(ctx, deployment.ObjectMeta.Name, metav1.DeleteOptions{})
+	if err != nil {
+		return &pb.LinterResponse{Code: 1}, nil
+	}
 	return &pb.LinterResponse{Code: pb.LinterResponse_SUCCESS}, nil
 }
 
@@ -296,9 +304,9 @@ func main() {
 	pb.RegisterMachineManagerServer(grpcServer, &machine_manager)
 	log.Fatal(grpcServer.Serve(lis))
 
-    //machine_spawner := makeMachineSpawner()
-    //pb.RegisterMachineSpawnerServer(grpcServer, &machine_spawner)
-    //log.Fatal(grpcServer.Serve(lis))
+	//machine_spawner := makeMachineSpawner()
+	//pb.RegisterMachineSpawnerServer(grpcServer, &machine_spawner)
+	//log.Fatal(grpcServer.Serve(lis))
 }
 
 /*
