@@ -204,18 +204,24 @@ func (s *machineManagerServer) RemoveLoadBalancer(ctx context.Context, req *pb.L
 }
 */
 
-func (s *machineManagerServer) AppendLinter(ctx context.Context, req *pb.Worker) (*pb.LinterResponse, error) {
+func (s *machineManagerServer) AppendLinter(ctx context.Context, req *pb.LinterAttributes) (*pb.LinterResponse, error) {
 	s.mut.Lock()
 	defer s.mut.Unlock()
-	s.state.Linters.addMachine(req.Attrs.Language, req.Attrs.Version, MachineInfo{Address: req.Address, Port: req.Port})
+    // TODO: actually create this linter
+    address := "abcd(change this)"
+    port := int32(2137)
+	s.state.Linters.addMachine(req.Language, req.Version, MachineInfo{Address: address, Port: port})
 	s.storeState()
 	return &pb.LinterResponse{Code: pb.LinterResponse_SUCCESS}, nil
 }
 
-func (s *machineManagerServer) RemoveLinter(ctx context.Context, req *pb.Worker) (*pb.LinterResponse, error) {
+func (s *machineManagerServer) RemoveLinter(ctx context.Context, req *pb.LinterAttributes) (*pb.LinterResponse, error) {
 	s.mut.Lock()
 	defer s.mut.Unlock()
-	s.state.Linters.removeMachine(req.Attrs.Language, req.Attrs.Version, MachineInfo{Address: req.Address, Port: req.Port})
+
+    address := "abcd(change this)"
+    port := int32(2137)
+    s.state.Linters.removeMachine(req.Language, req.Version, MachineInfo{Address: address, Port: port})
 	s.storeState()
 	return &pb.LinterResponse{Code: pb.LinterResponse_SUCCESS}, nil
 }
@@ -261,18 +267,12 @@ func main() {
     //log.Fatal(grpcServer.Serve(lis))
 }
 
+/*
 type adminRespondingServer struct {
     pb.UnimplementedMachineSpawnerServer
     client kubernetes.Clientset
 }
 
-func (s *adminRespondingServer) AddLinter(ctx context.Context, in *pb.AddLinterRequest) (*pb.AddLinterResponse, error) {
-    log.Printf("received %s", in.String())
-    // 
-    return &pb.AddLinterResponse{Resp: pb.AddLinterResponse_Ok}, nil
-}
-
-/*
 func makeMachineSpawner() adminRespondingServer {
     _, cancelCtx := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelCtx()
