@@ -84,3 +84,27 @@ message LoadBalancingProportions {
 service MachineSpawner {
     rpc SetProportions(LoadBalancingProportions) returns (SetProportionsResponse) {}
 }
+
+service MachineSpawner {
+    rpc AddLinter(AddLinterRequest) returns (AddLinterResponse) {}
+}
+
+message LinterVersion {
+    string language = 1;
+    int32 major = 2;
+    int32 minor = 3;
+    int32 patch = 4;
+}
+
+message AddLinterRequest {
+    string container_url = 1;
+    LinterVersion linter_version = 2;
+}
+
+message AddLinterResponse {
+    enum Response {
+        Ok = 0;
+        NotOk = 1;
+    }
+    Response resp = 1;
+}
