@@ -225,7 +225,6 @@ func (s *machineManagerServer) removeLinterMachine(info MachineInfo) {
 }
 
 func (s *machineManagerServer) removeLinterMachines(lang language, ver version) {
-    // TODO: actually create this linter
     map1, exists1 := s.state.Linters.Machines[lang]
     if !exists1 {
         return
