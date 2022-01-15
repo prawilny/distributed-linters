@@ -26,7 +26,7 @@ type MachineInfo struct {
 }
 type MachineInfoSet map[MachineInfo]bool
 
-func (mis MachineInfoSet) MarshalText() (text []byte, err error) {
+func (mis MachineInfoSet) MarshalJSON() (data []byte, err error) {
 	machines := make([]MachineInfo, 0, len(mis))
 	for k, _ := range mis {
 		machines = append(machines, k)
@@ -34,17 +34,17 @@ func (mis MachineInfoSet) MarshalText() (text []byte, err error) {
 	return json.Marshal(machines)
 }
 
-func (mis MachineInfoSet) UnmarshalText(text []byte) error {
-	mis = make(MachineInfoSet)
+func (mis *MachineInfoSet) UnmarshalJSON(data []byte) error {
+	*mis = make(MachineInfoSet)
 
 	var machines []MachineInfo
-	err := json.Unmarshal(text, &machines)
+	err := json.Unmarshal(data, &machines)
 	if err != nil {
 		return err
 	}
 
 	for _, machine := range machines {
-		mis[machine] = true
+		(*mis)[machine] = true
 	}
 	return nil
 }
@@ -62,6 +62,23 @@ func (lb *LBWorkersInfo) addMachine(machine MachineInfo) {
 
 func (lb *LBWorkersInfo) removeMachine(machine MachineInfo) {
 	delete(lb.Machines, machine)
+}
+
+func (w *WorkersInfo) getMachines() []*pb.Worker {
+	workers := []*pb.Worker{}
+	for lang, verMap := range w.Machines {
+		for ver, machMap := range verMap {
+			for mach, _ := range machMap {
+				workers = append(workers, &pb.Worker{
+					Address:  mach.Address,
+					Port:     mach.Port,
+					Language: lang,
+					Version:  ver,
+				})
+			}
+		}
+	}
+	return workers
 }
 
 func (w *WorkersInfo) addMachine(lang language, ver version, machine MachineInfo) {
@@ -127,14 +144,13 @@ func makeMachineManager() machineManagerServer {
 	}
 
 	kv := etcd3.NewKV(cli)
-	resp, err := kv.Get(ctx, machine_manager_state_key)
-	if err != nil {
-		panic(fmt.Sprintf("error getting lastest machine manager state from etcd: %s", err.Error()))
-	}
-
 	state := machineManagerState{
 		Load_balancers: LBWorkersInfo{Machines: make(MachineInfoSet)},
 		Linters:        WorkersInfo{Machines: make(map[string]map[string]MachineInfoSet)},
+	}
+	resp, err := kv.Get(ctx, machine_manager_state_key)
+	if err != nil {
+		panic(fmt.Sprintf("error getting lastest machine manager state from etcd: %s", err.Error()))
 	}
 	if len(resp.Kvs) != 0 {
 		err = json.Unmarshal(resp.Kvs[0].Value, &state)
@@ -142,7 +158,6 @@ func makeMachineManager() machineManagerServer {
 			panic(fmt.Sprintf("error unmarshaling lastest machine manager state: %s", err.Error()))
 		}
 	}
-
 	return machineManagerServer{
 		state: state,
 		etcd:  kv,
@@ -151,16 +166,13 @@ func makeMachineManager() machineManagerServer {
 
 func (s *machineManagerServer) storeState() {
 	serializedBytes, err := json.Marshal(s.state)
-	serialized := string(serializedBytes)
 	if err != nil {
 		panic(fmt.Sprintf("error marshalling machine manager state: %s", err.Error()))
 	}
 
 	ctx, cancelCtx := context.WithTimeout(context.Background(), requestTimeout)
 	defer cancelCtx()
-	log.Printf("%#v", s.state)
-	log.Print(serialized)
-	_, err = s.etcd.Put(ctx, machine_manager_state_key, serialized)
+	_, err = s.etcd.Put(ctx, machine_manager_state_key, string(serializedBytes))
 	if err != nil {
 		panic(fmt.Sprintf("error saving machine manager state: %s", err.Error()))
 	}
@@ -215,7 +227,7 @@ func (s *machineManagerServer) SetProportions(ctx context.Context, req *pb.LoadB
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		client.SetConfig(ctx, &pb.SetConfigRequest{Workers: []*pb.Worker{}, Weights: []*pb.Weight{}})
+		client.SetConfig(ctx, &pb.SetConfigRequest{Workers: s.state.Linters.getMachines(), Weights: req.Weights})
 	}
 	return &pb.SetProportionsResponse{Code: pb.SetProportionsResponse_SUCCESS}, nil
 }
