@@ -17,7 +17,7 @@ import (
     //"k8s.io/apimachinery/pkg/api/errors"
     //metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
     "k8s.io/client-go/kubernetes"
-    "k8s.io/client-go/rest"
+    //"k8s.io/client-go/rest"
 )
 
 
@@ -78,8 +78,10 @@ func (w *WorkersInfo) getMachines() []*pb.Worker {
 				workers = append(workers, &pb.Worker{
 					Address:  mach.Address,
 					Port:     mach.Port,
-					Language: lang,
-					Version:  ver,
+                    Attrs:    &pb.LinterAttributes {  
+                        Language: lang,
+                        Version:  ver,
+                    },
 				})
 			}
 		}
@@ -134,6 +136,7 @@ type machineManagerServer struct {
 	pb.UnimplementedMachineManagerServer
 	state machineManagerState
 	etcd  etcd3.KV
+    client kubernetes.Clientset
 	mut   sync.Mutex
 }
 
@@ -183,6 +186,7 @@ func (s *machineManagerServer) storeState() {
 	}
 }
 
+/*
 func (s *machineManagerServer) AppendLoadBalancer(ctx context.Context, req *pb.LBWorker) (*pb.AppendMachineResponse, error) {
 	s.mut.Lock()
 	defer s.mut.Unlock()
@@ -198,24 +202,25 @@ func (s *machineManagerServer) RemoveLoadBalancer(ctx context.Context, req *pb.L
 	s.storeState()
 	return &pb.RemoveMachineResponse{Code: pb.RemoveMachineResponse_SUCCESS}, nil
 }
+*/
 
-func (s *machineManagerServer) AppendLinter(ctx context.Context, req *pb.Worker) (*pb.AppendMachineResponse, error) {
+func (s *machineManagerServer) AppendLinter(ctx context.Context, req *pb.Worker) (*pb.LinterResponse, error) {
 	s.mut.Lock()
 	defer s.mut.Unlock()
-	s.state.Linters.addMachine(req.Language, req.Version, MachineInfo{Address: req.Address, Port: req.Port})
+	s.state.Linters.addMachine(req.Attrs.Language, req.Attrs.Version, MachineInfo{Address: req.Address, Port: req.Port})
 	s.storeState()
-	return &pb.AppendMachineResponse{Code: pb.AppendMachineResponse_SUCCESS}, nil
+	return &pb.LinterResponse{Code: pb.LinterResponse_SUCCESS}, nil
 }
 
-func (s *machineManagerServer) RemoveLinter(ctx context.Context, req *pb.Worker) (*pb.RemoveMachineResponse, error) {
+func (s *machineManagerServer) RemoveLinter(ctx context.Context, req *pb.Worker) (*pb.LinterResponse, error) {
 	s.mut.Lock()
 	defer s.mut.Unlock()
-	s.state.Linters.removeMachine(req.Language, req.Version, MachineInfo{Address: req.Address, Port: req.Port})
+	s.state.Linters.removeMachine(req.Attrs.Language, req.Attrs.Version, MachineInfo{Address: req.Address, Port: req.Port})
 	s.storeState()
-	return &pb.RemoveMachineResponse{Code: pb.RemoveMachineResponse_SUCCESS}, nil
+	return &pb.LinterResponse{Code: pb.LinterResponse_SUCCESS}, nil
 }
 
-func (s *machineManagerServer) SetProportions(ctx context.Context, req *pb.LoadBalancingProportions) (*pb.SetProportionsResponse, error) {
+func (s *machineManagerServer) SetProportions(ctx context.Context, req *pb.LoadBalancingProportions) (*pb.LinterResponse, error) {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 	for machine := range s.state.Load_balancers.Machines {
@@ -234,7 +239,7 @@ func (s *machineManagerServer) SetProportions(ctx context.Context, req *pb.LoadB
 
 		client.SetConfig(ctx, &pb.SetConfigRequest{Workers: s.state.Linters.getMachines(), Weights: req.Weights})
 	}
-	return &pb.SetProportionsResponse{Code: pb.SetProportionsResponse_SUCCESS}, nil
+	return &pb.LinterResponse{Code: pb.LinterResponse_SUCCESS}, nil
 }
 
 func main() {
@@ -251,9 +256,9 @@ func main() {
 	pb.RegisterMachineManagerServer(grpcServer, &machine_manager)
 	log.Fatal(grpcServer.Serve(lis))
 
-    machine_spawner := makeMachineSpawner()
-    pb.RegisterMachineSpawnerServer(grpcServer, &machine_spawner)
-    log.Fatal(grpcServer.Serve(lis))
+    //machine_spawner := makeMachineSpawner()
+    //pb.RegisterMachineSpawnerServer(grpcServer, &machine_spawner)
+    //log.Fatal(grpcServer.Serve(lis))
 }
 
 type adminRespondingServer struct {
@@ -267,6 +272,7 @@ func (s *adminRespondingServer) AddLinter(ctx context.Context, in *pb.AddLinterR
     return &pb.AddLinterResponse{Resp: pb.AddLinterResponse_Ok}, nil
 }
 
+/*
 func makeMachineSpawner() adminRespondingServer {
     _, cancelCtx := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelCtx()
@@ -283,3 +289,4 @@ func makeMachineSpawner() adminRespondingServer {
 
     return adminRespondingServer {client: *clientset}
 }
+*/
