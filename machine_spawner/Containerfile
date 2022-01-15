@@ -1,0 +1,3 @@
+FROM scratch
+ADD spawner /
+CMD ["/spawner"]
