@@ -23,6 +23,7 @@ type adminRespondingServer struct {
 
 func (s *adminRespondingServer) AddLinter(ctx context.Context, in *pb.AddLinterRequest) (*pb.AddLinterResponse, error) {
     log.Printf("received %s", in.String())
+    // 
     return &pb.AddLinterResponse{Resp: pb.AddLinterResponse_Ok}, nil
 }
 

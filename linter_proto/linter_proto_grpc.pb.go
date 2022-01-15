@@ -421,6 +421,7 @@ var MachineManager_ServiceDesc = grpc.ServiceDesc{
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MachineSpawnerClient interface {
 	SetProportions(ctx context.Context, in *LoadBalancingProportions, opts ...grpc.CallOption) (*SetProportionsResponse, error)
+	AddLinter(ctx context.Context, in *AddLinterRequest, opts ...grpc.CallOption) (*AddLinterResponse, error)
 }
 
 type machineSpawnerClient struct {
@@ -440,11 +441,21 @@ func (c *machineSpawnerClient) SetProportions(ctx context.Context, in *LoadBalan
 	return out, nil
 }
 
+func (c *machineSpawnerClient) AddLinter(ctx context.Context, in *AddLinterRequest, opts ...grpc.CallOption) (*AddLinterResponse, error) {
+	out := new(AddLinterResponse)
+	err := c.cc.Invoke(ctx, "/MachineSpawner/AddLinter", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MachineSpawnerServer is the server API for MachineSpawner service.
 // All implementations must embed UnimplementedMachineSpawnerServer
 // for forward compatibility
 type MachineSpawnerServer interface {
 	SetProportions(context.Context, *LoadBalancingProportions) (*SetProportionsResponse, error)
+	AddLinter(context.Context, *AddLinterRequest) (*AddLinterResponse, error)
 	mustEmbedUnimplementedMachineSpawnerServer()
 }
 
@@ -454,6 +465,9 @@ type UnimplementedMachineSpawnerServer struct {
 
 func (UnimplementedMachineSpawnerServer) SetProportions(context.Context, *LoadBalancingProportions) (*SetProportionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetProportions not implemented")
+}
+func (UnimplementedMachineSpawnerServer) AddLinter(context.Context, *AddLinterRequest) (*AddLinterResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddLinter not implemented")
 }
 func (UnimplementedMachineSpawnerServer) mustEmbedUnimplementedMachineSpawnerServer() {}
 
@@ -486,6 +500,24 @@ func _MachineSpawner_SetProportions_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MachineSpawner_AddLinter_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddLinterRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MachineSpawnerServer).AddLinter(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/MachineSpawner/AddLinter",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MachineSpawnerServer).AddLinter(ctx, req.(*AddLinterRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MachineSpawner_ServiceDesc is the grpc.ServiceDesc for MachineSpawner service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -496,6 +528,10 @@ var MachineSpawner_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetProportions",
 			Handler:    _MachineSpawner_SetProportions_Handler,
+		},
+		{
+			MethodName: "AddLinter",
+			Handler:    _MachineSpawner_AddLinter_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
