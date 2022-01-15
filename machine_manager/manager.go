@@ -117,6 +117,17 @@ func (w *WorkersInfo) removeMachine(lang language, ver version, machine MachineI
 	}
 }
 
+func (w *WorkersInfo) removeMachinesForLinter(lang language, ver version) {
+	map_, exists1 := w.Machines[lang]
+	if !exists1 {
+		return
+	}
+    delete(map_, ver)
+    if len(map_) == 0 {
+        delete(w.Machines, lang)
+    }
+}
+
 var (
     listen_addr = flag.String("address", "0.0.0.0:2137", "The Admin CLI Listen address (with port)")
 	grpc_opts   = []grpc.DialOption{grpc.WithBlock(), grpc.WithInsecure()}
@@ -204,13 +215,38 @@ func (s *machineManagerServer) RemoveLoadBalancer(ctx context.Context, req *pb.L
 }
 */
 
+func (s *machineManagerServer) createLinterMachine(lang language, ver version) (MachineInfo, error) {
+    // TODO: actually create this linter
+    return MachineInfo{Address: "abcd(change this)", Port: int32(2137)}, nil
+}
+
+func (s *machineManagerServer) removeLinterMachine(info MachineInfo) {
+    // TODO: actually remove the machine
+}
+
+func (s *machineManagerServer) removeLinterMachines(lang language, ver version) {
+    // TODO: actually create this linter
+    map1, exists1 := s.state.Linters.Machines[lang]
+    if !exists1 {
+        return
+    }
+    map2, exists2 := map1[ver]
+    if !exists2 {
+        return
+    }
+    for info := range map2 {
+        s.removeLinterMachine(info)
+    }
+}
+
 func (s *machineManagerServer) AppendLinter(ctx context.Context, req *pb.LinterAttributes) (*pb.LinterResponse, error) {
 	s.mut.Lock()
 	defer s.mut.Unlock()
-    // TODO: actually create this linter
-    address := "abcd(change this)"
-    port := int32(2137)
-	s.state.Linters.addMachine(req.Language, req.Version, MachineInfo{Address: address, Port: port})
+    machine, err := s.createLinterMachine(req.Language, req.Version)
+    if err != nil {
+        return &pb.LinterResponse{Code: pb.LinterResponse_SUCCESS}, nil
+    }
+	s.state.Linters.addMachine(req.Language, req.Version, machine)
 	s.storeState()
 	return &pb.LinterResponse{Code: pb.LinterResponse_SUCCESS}, nil
 }
@@ -219,9 +255,8 @@ func (s *machineManagerServer) RemoveLinter(ctx context.Context, req *pb.LinterA
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
-    address := "abcd(change this)"
-    port := int32(2137)
-    s.state.Linters.removeMachine(req.Language, req.Version, MachineInfo{Address: address, Port: port})
+    s.removeLinterMachines(req.Language, req.Version)
+    s.state.Linters.removeMachinesForLinter(req.Language, req.Version)
 	s.storeState()
 	return &pb.LinterResponse{Code: pb.LinterResponse_SUCCESS}, nil
 }
