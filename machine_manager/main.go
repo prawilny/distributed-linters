@@ -11,9 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"google.golang.org/grpc"
-
 	etcd3 "go.etcd.io/etcd/client/v3"
+	"google.golang.org/grpc"
 )
 
 type language = string
@@ -21,39 +20,66 @@ type version = string
 type address = string
 type port = int32
 
-type machineInfo struct {
-	address address
-	port    port
+type MachineInfo struct {
+	Address address
+	Port    port
 }
-type machines = map[machineInfo]struct{}
+type MachineInfoSet map[MachineInfo]bool
 
-type LBWorkersInfo machines
-type WorkersInfo map[language]map[version]machines
-
-func (lb LBWorkersInfo) addMachine(machine machineInfo) {
-	lb[machine] = exists
-}
-
-func (lb LBWorkersInfo) removeMachine(machine machineInfo) {
-	delete(lb, machine)
-}
-
-func (w WorkersInfo) addMachine(lang language, ver version, machine machineInfo) {
-	if _, exists := w[lang]; !exists {
-		w[lang] = make(map[version]map[machineInfo]struct{})
+func (mis MachineInfoSet) MarshalText() (text []byte, err error) {
+	machines := make([]MachineInfo, 0, len(mis))
+	for k, _ := range mis {
+		machines = append(machines, k)
 	}
-	if _, exists := w[lang][ver]; !exists {
-		w[lang][ver] = make(map[machineInfo]struct{})
-	}
-	w[lang][ver][machine] = exists
+	return json.Marshal(machines)
 }
 
-func (w WorkersInfo) removeMachine(lang language, ver version, machine machineInfo) {
-	map1, exists1 := w[lang]
+func (mis MachineInfoSet) UnmarshalText(text []byte) error {
+	mis = make(MachineInfoSet)
+
+	var machines []MachineInfo
+	err := json.Unmarshal(text, &machines)
+	if err != nil {
+		return err
+	}
+
+	for _, machine := range machines {
+		mis[machine] = true
+	}
+	return nil
+}
+
+type LBWorkersInfo struct {
+	Machines MachineInfoSet
+}
+type WorkersInfo struct {
+	Machines map[language]map[version]MachineInfoSet
+}
+
+func (lb *LBWorkersInfo) addMachine(machine MachineInfo) {
+	lb.Machines[machine] = true
+}
+
+func (lb *LBWorkersInfo) removeMachine(machine MachineInfo) {
+	delete(lb.Machines, machine)
+}
+
+func (w *WorkersInfo) addMachine(lang language, ver version, machine MachineInfo) {
+	if _, exists := w.Machines[lang]; !exists {
+		w.Machines[lang] = make(map[version]MachineInfoSet)
+	}
+	if _, exists := w.Machines[lang][ver]; !exists {
+		w.Machines[lang][ver] = make(MachineInfoSet)
+	}
+	w.Machines[lang][ver][machine] = true
+}
+
+func (w *WorkersInfo) removeMachine(lang language, ver version, machine MachineInfo) {
+	map1, exists1 := w.Machines[lang]
 	if !exists1 {
 		return
 	}
-	map2, exists2 := w[lang][ver]
+	map2, exists2 := w.Machines[lang][ver]
 	if !exists2 {
 		return
 	}
@@ -62,7 +88,7 @@ func (w WorkersInfo) removeMachine(lang language, ver version, machine machineIn
 		delete(map1, lang)
 	}
 	if len(map1) == 0 {
-		delete(w, lang)
+		delete(w.Machines, lang)
 	}
 }
 
@@ -73,15 +99,13 @@ var (
 
 	dialTimeout               = 2 * time.Second
 	requestTimeout            = 10 * time.Second
-	etcd_addrs                = []string{"etcd:2379"}
+	etcd_addrs                = []string{"localhost:2379"}
 	machine_manager_state_key = "MACHINE_MANAGER_STATE"
-
-	exists = struct{}{}
 )
 
 type machineManagerState struct {
-	load_balancers LBWorkersInfo
-	linters        WorkersInfo
+	Load_balancers LBWorkersInfo
+	Linters        WorkersInfo
 }
 
 type machineManagerServer struct {
@@ -101,7 +125,6 @@ func makeMachineManager() machineManagerServer {
 	if err != nil {
 		panic(fmt.Sprintf("error creating etcd connection: %s", err.Error()))
 	}
-	defer cli.Close()
 
 	kv := etcd3.NewKV(cli)
 	resp, err := kv.Get(ctx, machine_manager_state_key)
@@ -110,8 +133,8 @@ func makeMachineManager() machineManagerServer {
 	}
 
 	state := machineManagerState{
-		load_balancers: make(LBWorkersInfo),
-		linters:        make(WorkersInfo),
+		Load_balancers: LBWorkersInfo{Machines: make(MachineInfoSet)},
+		Linters:        WorkersInfo{Machines: make(map[string]map[string]MachineInfoSet)},
 	}
 	if len(resp.Kvs) != 0 {
 		err = json.Unmarshal(resp.Kvs[0].Value, &state)
@@ -127,14 +150,17 @@ func makeMachineManager() machineManagerServer {
 }
 
 func (s *machineManagerServer) storeState() {
-	serialized, err := json.Marshal(s.state)
+	serializedBytes, err := json.Marshal(s.state)
+	serialized := string(serializedBytes)
 	if err != nil {
 		panic(fmt.Sprintf("error marshalling machine manager state: %s", err.Error()))
 	}
 
 	ctx, cancelCtx := context.WithTimeout(context.Background(), requestTimeout)
 	defer cancelCtx()
-	_, err = s.etcd.Put(ctx, machine_manager_state_key, string(serialized))
+	log.Printf("%#v", s.state)
+	log.Print(serialized)
+	_, err = s.etcd.Put(ctx, machine_manager_state_key, serialized)
 	if err != nil {
 		panic(fmt.Sprintf("error saving machine manager state: %s", err.Error()))
 	}
@@ -143,7 +169,7 @@ func (s *machineManagerServer) storeState() {
 func (s *machineManagerServer) AppendLoadBalancer(ctx context.Context, req *pb.LBWorker) (*pb.AppendMachineResponse, error) {
 	s.mut.Lock()
 	defer s.mut.Unlock()
-	s.state.load_balancers.addMachine(machineInfo{address: req.Address, port: req.Port})
+	s.state.Load_balancers.addMachine(MachineInfo{Address: req.Address, Port: req.Port})
 	s.storeState()
 	return &pb.AppendMachineResponse{Code: pb.AppendMachineResponse_SUCCESS}, nil
 }
@@ -151,7 +177,7 @@ func (s *machineManagerServer) AppendLoadBalancer(ctx context.Context, req *pb.L
 func (s *machineManagerServer) RemoveLoadBalancer(ctx context.Context, req *pb.LBWorker) (*pb.RemoveMachineResponse, error) {
 	s.mut.Lock()
 	defer s.mut.Unlock()
-	s.state.load_balancers.removeMachine(machineInfo{address: req.Address, port: req.Port})
+	s.state.Load_balancers.removeMachine(MachineInfo{Address: req.Address, Port: req.Port})
 	s.storeState()
 	return &pb.RemoveMachineResponse{Code: pb.RemoveMachineResponse_SUCCESS}, nil
 }
@@ -159,7 +185,7 @@ func (s *machineManagerServer) RemoveLoadBalancer(ctx context.Context, req *pb.L
 func (s *machineManagerServer) AppendLinter(ctx context.Context, req *pb.Worker) (*pb.AppendMachineResponse, error) {
 	s.mut.Lock()
 	defer s.mut.Unlock()
-	s.state.linters.addMachine(req.Language, req.Version, machineInfo{address: req.Address, port: req.Port})
+	s.state.Linters.addMachine(req.Language, req.Version, MachineInfo{Address: req.Address, Port: req.Port})
 	s.storeState()
 	return &pb.AppendMachineResponse{Code: pb.AppendMachineResponse_SUCCESS}, nil
 }
@@ -167,7 +193,7 @@ func (s *machineManagerServer) AppendLinter(ctx context.Context, req *pb.Worker)
 func (s *machineManagerServer) RemoveLinter(ctx context.Context, req *pb.Worker) (*pb.RemoveMachineResponse, error) {
 	s.mut.Lock()
 	defer s.mut.Unlock()
-	s.state.linters.removeMachine(req.Language, req.Version, machineInfo{address: req.Address, port: req.Port})
+	s.state.Linters.removeMachine(req.Language, req.Version, MachineInfo{Address: req.Address, Port: req.Port})
 	s.storeState()
 	return &pb.RemoveMachineResponse{Code: pb.RemoveMachineResponse_SUCCESS}, nil
 }
@@ -175,8 +201,8 @@ func (s *machineManagerServer) RemoveLinter(ctx context.Context, req *pb.Worker)
 func (s *machineManagerServer) SetProportions(ctx context.Context, req *pb.LoadBalancingProportions) (*pb.SetProportionsResponse, error) {
 	s.mut.Lock()
 	defer s.mut.Unlock()
-	for machine, _ := range s.state.load_balancers {
-		peerAddr := fmt.Sprintf("%s:%d", machine.address, machine.port)
+	for machine, _ := range s.state.Load_balancers.Machines {
+		peerAddr := fmt.Sprintf("%s:%d", machine.Address, machine.Port)
 		conn, err := grpc.Dial(peerAddr, grpc_opts...)
 		log.Printf("Connected to: %v", peerAddr)
 		if err != nil {
