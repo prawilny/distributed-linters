@@ -2,6 +2,7 @@ syntax = "proto3";
 
 option go_package = "a/b/linter_proto";
 
+
 service Linter {
     rpc Lint(LintRequest) returns (LintResponse) {}
 }
@@ -18,29 +19,28 @@ message LintResponse {
     repeated Hint hints = 1;
 }
 
-message Weight {
+
+message LinterAttributes {
     string language = 1;
     string version = 2;
-    float weight = 3;
 }
+
+message Weight {
+    LinterAttributes attrs = 1;
+    float weight = 2;
+}
+
 message Worker {
     string address = 1;
     int32 port = 2;
-    string language = 3;
-    string version = 4;
-}
-message LBWorker {
-    string address = 1;
-    int32 port = 2;
+    LinterAttributes attrs = 3;
 }
 
-service LoadBalancer {
-    rpc SetConfig(SetConfigRequest) returns (SetConfigResponse) {}
-}
 message SetConfigRequest {
     repeated Worker workers = 1;
     repeated Weight weights = 2;
 }
+
 message SetConfigResponse {
     enum Code {
         SUCCESS = 0;
@@ -48,60 +48,24 @@ message SetConfigResponse {
     Code code = 1;
 }
 
-service MachineManager {
-    rpc AppendLoadBalancer(LBWorker) returns (AppendMachineResponse) {}
-
-    rpc RemoveLoadBalancer(LBWorker) returns (RemoveMachineResponse) {}
-
-    rpc AppendLinter(Worker) returns (AppendMachineResponse) {}
-
-    rpc RemoveLinter(Worker) returns (RemoveMachineResponse) {}
-
-    rpc SetProportions(LoadBalancingProportions) returns (SetProportionsResponse) {}
+service LoadBalancer {
+    rpc SetConfig(SetConfigRequest) returns (SetConfigResponse) {}
 }
-message AppendMachineResponse {
-    enum Code {
-        SUCCESS = 0;
-    }
-    Code code = 1;
-}
-message RemoveMachineResponse {
-    enum Code {
-        SUCCESS = 0;
-    }
-    Code code = 1;
-}
-message SetProportionsResponse {
-    enum Code {
-        SUCCESS = 0;
-    }
-    Code code = 1;
-}
+
+
 message LoadBalancingProportions {
     repeated Weight weights = 1;
 }
 
-service MachineSpawner {
-    rpc SetProportions(LoadBalancingProportions) returns (SetProportionsResponse) {}
-    rpc AddLinter(AddLinterRequest) returns (AddLinterResponse) {}
-}
-
-message LinterVersion {
-    string language = 1;
-    int32 major = 2;
-    int32 minor = 3;
-    int32 patch = 4;
-}
-
-message AddLinterRequest {
-    string container_url = 1;
-    LinterVersion linter_version = 2;
-}
-
-message AddLinterResponse {
-    enum Response {
-        Ok = 0;
-        NotOk = 1;
+message LinterResponse {
+    enum Code {
+        SUCCESS = 0;
     }
-    Response resp = 1;
+    Code code = 1;
+}
+
+service MachineManager {
+    rpc AppendLinter(LinterAttributes) returns (LinterResponse) {}
+    rpc RemoveLinter(LinterAttributes) returns (LinterResponse) {}
+    rpc SetProportions(LoadBalancingProportions) returns (LinterResponse) {}
 }
