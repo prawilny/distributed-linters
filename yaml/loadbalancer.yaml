@@ -33,6 +33,7 @@ spec:
     metadata:
       labels:
         app: loadbalancer
+        xD: loadbalancer
     spec:
       containers:
       - name: loadbalancer
