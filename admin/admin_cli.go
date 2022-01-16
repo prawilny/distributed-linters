@@ -17,7 +17,7 @@ var (
     listen_addr = flag.String("address", "0.0.0.0:1337", "The Machine Spawner address")
 
     addVersion = flag.NewFlagSet("add_version", flag.ExitOnError)
-    containerUrl = addVersion.String("container_url", "(invalid)", "The container url with linter")
+    imageUrl = addVersion.String("image_ure", "(invalid)", "The linter container image url")
     language_add = addVersion.String("language", "forth", "Language to be used")
     version_add = addVersion.String("version", "(optimized out)", "Version")
 
@@ -47,7 +47,7 @@ func add_version(args []string) {
         Version: *version_add,
     }
     linterRequest := pb.AppendLinterRequest {
-        ContainerUrl: *containerUrl,
+        ImageUrl: *imageUrl,
         Attrs: &linterVersion,
     }
 

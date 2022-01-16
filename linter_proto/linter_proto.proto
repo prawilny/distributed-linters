@@ -59,7 +59,7 @@ message LoadBalancingProportions {
 
 message AppendLinterRequest {
     LinterAttributes attrs = 1;
-    string container_url = 2;
+    string image_url = 2;
 }
 
 message LinterResponse {

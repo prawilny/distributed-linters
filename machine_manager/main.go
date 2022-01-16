@@ -202,8 +202,11 @@ func (s *machineManagerServer) storeState() {
 
 func int32Ptr(i int32) *int32 { return &i }
 
-func deploymentFromLabels(lang language, ver version) appsv1.Deployment {
-	linterName := fmt.Sprintf("linter-%s-%s", lang, ver)
+func deploymentNameFromAttrs(lang language, ver version) string {
+	return fmt.Sprintf("linter-%s-%s", lang, ver)
+}
+func deploymentFromLabels(lang language, ver version, imageUrl string) appsv1.Deployment {
+	linterName := deploymentNameFromAttrs(lang, ver)
 	labels := map[string]string{
 		"version":  ver,
 		"language": lang,
@@ -226,7 +229,7 @@ func deploymentFromLabels(lang language, ver version) appsv1.Deployment {
 					Containers: []apiv1.Container{
 						{
 							Name:  linterName,
-							Image: linterName,
+							Image: imageUrl,
 							Ports: []apiv1.ContainerPort{
 								{
 									Name:          "http",
@@ -242,13 +245,13 @@ func deploymentFromLabels(lang language, ver version) appsv1.Deployment {
 	}
 }
 
-func (s *machineManagerServer) AppendLinter(ctx context.Context, req *pb.LinterAttributes) (*pb.LinterResponse, error) {
+func (s *machineManagerServer) AppendLinter(ctx context.Context, req *pb.AppendLinterRequest) (*pb.LinterResponse, error) {
 	ctx, cancelCtx := context.WithTimeout(context.Background(), requestTimeout)
 	defer cancelCtx()
 
 	deploymentsClient := s.client.AppsV1().Deployments(apiv1.NamespaceDefault)
-	deployment := deploymentFromLabels(req.Language, req.Version)
-	err := deploymentsClient.Delete(ctx, deployment.ObjectMeta.Name, metav1.DeleteOptions{})
+	deployment := deploymentFromLabels(req.Attrs.Language, req.Attrs.Version, req.ImageUrl)
+	_, err := deploymentsClient.Create(ctx, &deployment, metav1.CreateOptions{})
 	if err != nil {
 		return &pb.LinterResponse{Code: 1}, nil
 	}
@@ -260,8 +263,8 @@ func (s *machineManagerServer) RemoveLinter(ctx context.Context, req *pb.LinterA
 	defer cancelCtx()
 
 	deploymentsClient := s.client.AppsV1().Deployments(apiv1.NamespaceDefault)
-	deployment := deploymentFromLabels(req.Language, req.Version)
-	err := deploymentsClient.Delete(ctx, deployment.ObjectMeta.Name, metav1.DeleteOptions{})
+	deploymentName := deploymentNameFromAttrs(req.Language, req.Version)
+	err := deploymentsClient.Delete(ctx, deploymentName, metav1.DeleteOptions{})
 	if err != nil {
 		return &pb.LinterResponse{Code: 1}, nil
 	}
@@ -303,32 +306,4 @@ func main() {
 	grpcServer := grpc.NewServer(server_opts...)
 	pb.RegisterMachineManagerServer(grpcServer, &machine_manager)
 	log.Fatal(grpcServer.Serve(lis))
-
-	//machine_spawner := makeMachineSpawner()
-	//pb.RegisterMachineSpawnerServer(grpcServer, &machine_spawner)
-	//log.Fatal(grpcServer.Serve(lis))
 }
-
-/*
-type adminRespondingServer struct {
-    pb.UnimplementedMachineSpawnerServer
-    client kubernetes.Clientset
-}
-
-func makeMachineSpawner() adminRespondingServer {
-    _, cancelCtx := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancelCtx()
-
-    config, err := rest.InClusterConfig()
-    if err != nil {
-        panic(err.Error())
-    }
-
-    clientset, err := kubernetes.NewForConfig(config)
-    if err != nil {
-        panic(err.Error())
-    }
-
-    return adminRespondingServer {client: *clientset}
-}
-*/
