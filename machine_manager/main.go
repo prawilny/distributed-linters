@@ -8,19 +8,18 @@ import (
 	pb "irio/linter_proto"
 	"log"
 	"net"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
-	etcd3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
-
-	//"k8s.io/apimachinery/pkg/api/errors"
 
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	//"k8s.io/client-go/rest"
+	"k8s.io/client-go/rest"
 )
 
 type language = string
@@ -48,6 +47,7 @@ func (mis *MachineInfoSet) UnmarshalJSON(data []byte) error {
 	var machines []MachineInfo
 	err := json.Unmarshal(data, &machines)
 	if err != nil {
+		log.Println("error unmarshaling JSON: " + err.Error())
 		return err
 	}
 
@@ -149,61 +149,41 @@ type machineManagerState struct {
 type machineManagerServer struct {
 	pb.UnimplementedMachineManagerServer
 	state  machineManagerState
-	etcd   etcd3.KV
 	client kubernetes.Clientset
 	mut    sync.Mutex
 }
 
 func makeMachineManager() machineManagerServer {
-	ctx, cancelCtx := context.WithTimeout(context.Background(), requestTimeout)
-	defer cancelCtx()
-	cli, err := etcd3.New(etcd3.Config{
-		DialTimeout: dialTimeout,
-		Endpoints:   etcd_addrs,
-	})
-	if err != nil {
-		panic(fmt.Sprintf("error creating etcd connection: %s", err.Error()))
-	}
+	l := log.New(os.Stderr, "", 0)
+	l.Println(os.Environ())
+	l.Println(os.Getenv("KUBERNETES_SERVICE_HOST"))
+	l.Println(os.Getenv("KUBERNETES_SERVICE_PORT"))
 
-	kv := etcd3.NewKV(cli)
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		panic(err.Error())
+	}
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		panic(err.Error())
+	}
 	state := machineManagerState{
 		Load_balancers: LBWorkersInfo{Machines: make(MachineInfoSet)},
 		Linters:        WorkersInfo{Machines: make(map[string]map[string]MachineInfoSet)},
 	}
-	resp, err := kv.Get(ctx, machine_manager_state_key)
-	if err != nil {
-		panic(fmt.Sprintf("error getting lastest machine manager state from etcd: %s", err.Error()))
-	}
-	if len(resp.Kvs) != 0 {
-		err = json.Unmarshal(resp.Kvs[0].Value, &state)
-		if err != nil {
-			panic(fmt.Sprintf("error unmarshaling lastest machine manager state: %s", err.Error()))
-		}
-	}
+	// TODO: get latest state from ConfigMap
 	return machineManagerServer{
-		state: state,
-		etcd:  kv,
-	}
-}
-
-func (s *machineManagerServer) storeState() {
-	serializedBytes, err := json.Marshal(s.state)
-	if err != nil {
-		panic(fmt.Sprintf("error marshalling machine manager state: %s", err.Error()))
-	}
-
-	ctx, cancelCtx := context.WithTimeout(context.Background(), requestTimeout)
-	defer cancelCtx()
-	_, err = s.etcd.Put(ctx, machine_manager_state_key, string(serializedBytes))
-	if err != nil {
-		panic(fmt.Sprintf("error saving machine manager state: %s", err.Error()))
+		state:  state,
+		client: *clientset,
+		mut:    sync.Mutex{},
 	}
 }
 
 func int32Ptr(i int32) *int32 { return &i }
 
 func deploymentNameFromAttrs(lang language, ver version) string {
-	return fmt.Sprintf("linter-%s-%s", lang, ver)
+	return fmt.Sprintf("linter-%s-%s", lang, strings.ReplaceAll(ver, ".", "-"))
 }
 func deploymentFromLabels(lang language, ver version, imageUrl string) appsv1.Deployment {
 	linterName := deploymentNameFromAttrs(lang, ver)
@@ -228,8 +208,9 @@ func deploymentFromLabels(lang language, ver version, imageUrl string) appsv1.De
 				Spec: apiv1.PodSpec{
 					Containers: []apiv1.Container{
 						{
-							Name:  linterName,
-							Image: imageUrl,
+							Name:            linterName,
+							Image:           imageUrl,
+							ImagePullPolicy: "Never",
 							Ports: []apiv1.ContainerPort{
 								{
 									Name:          "http",
@@ -253,6 +234,7 @@ func (s *machineManagerServer) AppendLinter(ctx context.Context, req *pb.AppendL
 	deployment := deploymentFromLabels(req.Attrs.Language, req.Attrs.Version, req.ImageUrl)
 	_, err := deploymentsClient.Create(ctx, &deployment, metav1.CreateOptions{})
 	if err != nil {
+		log.Println("error appending linter: " + err.Error())
 		return &pb.LinterResponse{Code: 1}, nil
 	}
 	return &pb.LinterResponse{Code: pb.LinterResponse_SUCCESS}, nil
@@ -266,6 +248,7 @@ func (s *machineManagerServer) RemoveLinter(ctx context.Context, req *pb.LinterA
 	deploymentName := deploymentNameFromAttrs(req.Language, req.Version)
 	err := deploymentsClient.Delete(ctx, deploymentName, metav1.DeleteOptions{})
 	if err != nil {
+		log.Println("error removing linter: " + err.Error())
 		return &pb.LinterResponse{Code: 1}, nil
 	}
 	return &pb.LinterResponse{Code: pb.LinterResponse_SUCCESS}, nil

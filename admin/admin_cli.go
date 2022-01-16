@@ -18,7 +18,7 @@ var (
 	listen_addr = flag.String("address", "0.0.0.0:1337", "The Machine Spawner address")
 
 	addVersion   = flag.NewFlagSet("add_version", flag.ExitOnError)
-	imageUrl     = addVersion.String("image_ure", "(invalid)", "The linter container image url")
+	imageUrl     = addVersion.String("image_url", "(invalid)", "The linter container image url")
 	language_add = addVersion.String("language", "forth", "Language to be used")
 	version_add  = addVersion.String("version", "(optimized out)", "Version")
 
