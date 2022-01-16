@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
     "flag"
     "log"
+    "strconv"
     "context"
     "time"
     pb "irio/linter_proto"
@@ -14,59 +15,129 @@ import (
 
 var (
     listen_addr = flag.String("address", "0.0.0.0:1337", "The Machine Spawner address")
+
     addVersion = flag.NewFlagSet("add_version", flag.ExitOnError)
     containerUrl = addVersion.String("container_url", "(invalid)", "The container url with linter")
-    language = addVersion.String("language", "", "Language to be used")
-    major = addVersion.Int("major", -1, "Major")
-    minor = addVersion.Int("minor", -1, "Minor")
-    patch = addVersion.Int("patch", -1, "Patch")
+    language_add = addVersion.String("language", "forth", "Language to be used")
+    version_add = addVersion.String("version", "(optimized out)", "Version")
+
+    removeVersion = flag.NewFlagSet("remove_version", flag.ExitOnError)
+    language_remove = removeVersion.String("language", "forth", "Language to be used")
+    version_remove = removeVersion.String("version", "(optimized out)", "Version")
+
+    transportCreds = grpc.WithTransportCredentials(insecure.NewCredentials())
 )
+
+func dial(addr string) *grpc.ClientConn {
+    conn, err := grpc.Dial(addr, transportCreds)
+    if err != nil {
+        log.Fatalf("could not connect to %s: %v", addr, err)
+    }
+    return conn
+}
 
 func add_version(args []string) {
     addVersion.Parse(args)
-    if (*major < 0 || *minor < 0 || *patch < 0) {
-        log.Fatalf("Version format illegal: (%d:%d:%d)", *major, *minor, *patch)
+    if *language_add == "" || *version_add == "" {
+        log.Fatal("Language and version cannot be empty")
     }
 
-    linterVersion := pb.LinterVersion {
-        Language: *language,
-        Major: int32(*major),
-        Minor: int32(*minor),
-        Patch: int32(*patch),
+    linterVersion := pb.LinterAttributes {
+        Language: *language_add,
+        Version: *version_add,
+    }
+    linterRequest := pb.AppendLinterRequest {
+        ContainerUrl: *containerUrl,
+        Attrs: &linterVersion,
     }
 
-    transportCreds := grpc.WithTransportCredentials(insecure.NewCredentials())
-
-    conn, err := grpc.Dial(*listen_addr, transportCreds)
-	if err != nil {
-		log.Fatalf("did not connect: %v", err)
-	}
+    conn := dial(*listen_addr)
 	defer conn.Close()
-	c := pb.NewMachineSpawnerClient(conn)
+	c := pb.NewMachineManagerClient(conn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-    r, err := c.AddLinter(ctx, &pb.AddLinterRequest{ContainerUrl: *containerUrl, LinterVersion: &linterVersion})
+    r, err := c.AppendLinter(ctx, &linterRequest)
 	if err != nil {
-		log.Fatalf("could not greet: %v", err)
+		log.Fatalf("adding linter failed: %v", err)
 	}
-	log.Printf("Greeting: %s", r.String())
+	log.Printf("Got response: %s", r.String())
+}
+
+func remove_version(args []string) {
+    removeVersion.Parse(args)
+    if *language_remove == "" || *version_remove == "" {
+        log.Fatal("Language and version cannot be empty")
+    }
+
+    linterVersion := pb.LinterAttributes {
+        Language: *language_add,
+        Version: *version_add,
+    }
+    conn := dial(*listen_addr)
+    defer conn.Close()
+    c := pb.NewMachineManagerClient(conn)
+
+    ctx, ctx_cancel := context.WithTimeout(context.Background(), time.Second)
+    defer ctx_cancel()
+    r, err := c.RemoveLinter(ctx, &linterVersion)
+    if err != nil {
+        log.Fatalf("removing linter failed: %v", err)
+    }
+	log.Printf("Got response: %s", r.String())
+}
+
+func set_proportions(args []string) {
+    if len(args) % 3 != 0 {
+        log.Fatal("need triples (language, version, proportion)")
+    }
+    cmdArgs := []*pb.Weight{}
+    for i := 0; i < len(args); i += 3 {
+        f, err := strconv.ParseFloat(args[i+2], 32)
+        if err != nil || f <= 0 {
+            log.Fatalf("%s is not a real positive float", args[i+2])
+        }
+        cmdArgs = append(cmdArgs, &pb.Weight{
+            Attrs: &pb.LinterAttributes {Language: args[i], Version: args[i+1]},
+            Weight: float32(f),
+        })
+    }
+
+    conn := dial(*listen_addr)
+    defer conn.Close()
+    c := pb.NewMachineManagerClient(conn)
+
+    ctx, ctx_cancel := context.WithTimeout(context.Background(), time.Second)
+    defer ctx_cancel()
+    r, err := c.SetProportions(ctx, &pb.LoadBalancingProportions{Weights: cmdArgs})
+    if err != nil {
+        log.Fatalf("setting proportions failed: %v", err)
+    }
+	log.Printf("Got response: %s", r.String())
 }
 
 func main() {
     if len(os.Args) == 1 {
         // TODO: binarki nazwę mi wstaw
-        fmt.Println("usage: admin <command> [<args>]")
+        fmt.Println("usage: admin <machine_manager_address> <command> [<args>]")
         fmt.Println("subcommands: ")
         fmt.Println(" add_version           Adds new version")
+        fmt.Println(" remove_version        Removes preexisting version")
+        fmt.Println(" list_versions         Lists existing versions")
+        fmt.Println(" set_proportions       Set proportions for already existing versions")
         return
     }
     *listen_addr = os.Args[1]
+    rest_args := os.Args[3:]
 
     switch os.Args[2] {
     case "add_version":
-        add_version(os.Args[3:])
+        add_version(rest_args)
+    case "remove_version":
+        remove_version(rest_args)
+    case "set_proportions":
+        set_proportions(rest_args)
     default:
         fmt.Printf("%q is not valid command.\n", os.Args[1])
         os.Exit(2)

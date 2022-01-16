@@ -57,6 +57,11 @@ message LoadBalancingProportions {
     repeated Weight weights = 1;
 }
 
+message AppendLinterRequest {
+    LinterAttributes attrs = 1;
+    string container_url = 2;
+}
+
 message LinterResponse {
     enum Code {
         SUCCESS = 0;
@@ -65,7 +70,7 @@ message LinterResponse {
 }
 
 service MachineManager {
-    rpc AppendLinter(LinterAttributes) returns (LinterResponse) {}
+    rpc AppendLinter(AppendLinterRequest) returns (LinterResponse) {}
     rpc RemoveLinter(LinterAttributes) returns (LinterResponse) {}
     rpc SetProportions(LoadBalancingProportions) returns (LinterResponse) {}
 }
