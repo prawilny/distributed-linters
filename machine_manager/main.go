@@ -134,11 +134,11 @@ var (
 	listen_addr = flag.String("address", "0.0.0.0:2137", "The Admin CLI Listen address (with port)")
 	grpc_opts   = []grpc.DialOption{grpc.WithBlock(), grpc.WithInsecure()}
 
-	dialTimeout               = 2 * time.Second
-	requestTimeout            = 10 * time.Second
-	etcd_addrs                = []string{"localhost:2379"}
-	machine_manager_state_key = "MACHINE_MANAGER_STATE"
-	linter_port               = 33333
+	dialTimeout                = 2 * time.Second
+	requestTimeout             = 10 * time.Second
+	etcd_addrs                 = []string{"localhost:2379"}
+	machine_manager_config_map = "machine-manager-config-map"
+	linter_port                = 33333
 )
 
 type machineManagerState struct {
@@ -164,7 +164,7 @@ func makeMachineManager() machineManagerServer {
 		panic(err.Error())
 	}
 	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
+	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -172,10 +172,52 @@ func makeMachineManager() machineManagerServer {
 		Load_balancers: LBWorkersInfo{Machines: make(MachineInfoSet)},
 		Linters:        WorkersInfo{Machines: make(map[string]map[string]MachineInfoSet)},
 	}
-	// TODO: get latest state from ConfigMap
+
+	ctx, cancelCtx := context.WithTimeout(context.Background(), requestTimeout)
+	defer cancelCtx()
+
+	get, err := client.CoreV1().ConfigMaps("default").Get(ctx, machine_manager_config_map, metav1.GetOptions{})
+	if err != nil {
+		panic(err.Error())
+	}
+	jsonData := get.Data["json"]
+	if len(jsonData) != 0 {
+		err = json.Unmarshal([]byte(jsonData), &state)
+		if err != nil {
+			panic(err.Error())
+		}
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	log.Printf("get: %v\n", get)
+	log.Println("jsonData: " + jsonData)
+	serializedState, err := json.Marshal(&state)
+	if err != nil {
+		panic(err.Error())
+	}
+	log.Println("serializedState: " + string(serializedState))
+	updatedMap := apiv1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "machine-manager-config-map",
+		},
+		Data: map[string]string{
+			"json": string(serializedState),
+		},
+	}
+	_, err = client.CoreV1().ConfigMaps("default").Update(ctx, &updatedMap, metav1.UpdateOptions{})
+	if err != nil {
+		panic(err.Error())
+	}
+	get, err = client.CoreV1().ConfigMaps("default").Get(ctx, machine_manager_config_map, metav1.GetOptions{})
+	if err != nil {
+		panic(err.Error())
+	}
+	log.Printf("get: %v\n", get)
+	///////////////////////////////////////////////////////////////////////////
+
 	return machineManagerServer{
 		state:  state,
-		client: *clientset,
+		client: *client,
 		mut:    sync.Mutex{},
 	}
 }
@@ -185,6 +227,7 @@ func int32Ptr(i int32) *int32 { return &i }
 func deploymentNameFromAttrs(lang language, ver version) string {
 	return fmt.Sprintf("linter-%s-%s", lang, strings.ReplaceAll(ver, ".", "-"))
 }
+
 func deploymentFromLabels(lang language, ver version, imageUrl string) appsv1.Deployment {
 	linterName := deploymentNameFromAttrs(lang, ver)
 	labels := map[string]string{
