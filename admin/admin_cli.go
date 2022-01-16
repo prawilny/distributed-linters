@@ -26,6 +26,9 @@ var (
 	language_remove = removeVersion.String("language", "forth", "Language to be used")
 	version_remove  = removeVersion.String("version", "(optimized out)", "Version")
 
+	listVersions = flag.NewFlagSet("list_versions", flag.ExitOnError)
+    language_list = listVersions.String("language", "forth", "Language to show versions")
+
 	transportCreds = grpc.WithTransportCredentials(insecure.NewCredentials())
 )
 
@@ -118,6 +121,22 @@ func set_proportions(args []string) {
 	log.Printf("Got response: %s", r.String())
 }
 
+func list_versions(args []string) {
+    listVersions.Parse(args)
+
+	conn := dial(*listen_addr)
+	defer conn.Close()
+	c := pb.NewMachineManagerClient(conn)
+
+	ctx, ctx_cancel := context.WithTimeout(context.Background(), time.Second)
+	defer ctx_cancel()
+    r, err := c.ListVersions(ctx, &pb.Language {Language: *language_list})
+	if err != nil {
+		log.Fatalf("listing versions failed: %v", err)
+	}
+	log.Printf("Got response: %s", r.String())
+}
+
 func main() {
 	if len(os.Args) == 1 {
 		// TODO: binarki nazwę mi wstaw
@@ -139,6 +158,8 @@ func main() {
 		remove_version(rest_args)
 	case "set_proportions":
 		set_proportions(rest_args)
+    case "list_versions":
+        list_versions(rest_args)
 	default:
 		fmt.Printf("%q is not valid command.\n", os.Args[1])
 		os.Exit(2)
