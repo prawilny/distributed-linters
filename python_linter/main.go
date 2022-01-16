@@ -5,8 +5,9 @@ import (
 	//"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	//"io"
-	//"io/ioutil"
+	"io/ioutil"
 	"log"
 	//"math"
 	"net"
@@ -45,8 +46,8 @@ func merge(a []int, b []int) []int {
 }
 
 var (
-	listen_addr = flag.String("address", "localhost", "The server address")
-	listen_port = flag.Int("port", -1, "The server port")
+	http_port = flag.Int("http-port", -1, "The HTTP healthcheck port")
+	grpc_port = flag.Int("grpc-port", -1, "The GRPC data port")
 )
 
 type linterServer struct {
@@ -102,16 +103,31 @@ func (s *linterServer) Lint(ctx context.Context, req *pb.LintRequest) (*pb.LintR
 
 func main() {
 	flag.Parse()
-    if *listen_port < 0 {
-        log.Fatalf("Bad -port: %d", *listen_port)
+    if *http_port < 0 {
+        log.Fatalf("Bad -http-port: %d", *http_port)
     }
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *listen_addr, *listen_port))
+    if *grpc_port < 0 {
+        log.Fatalf("Bad -grpc-port: %d", *grpc_port)
+    }
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *grpc_port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	var opts []grpc.ServerOption
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterLinterServer(grpcServer, makeLinterServer())
-	grpcServer.Serve(lis)
+	go grpcServer.Serve(lis)
+
+    mux := http.NewServeMux()
+    healthcheck := func(res http.ResponseWriter, req *http.Request) {
+        ioutil.ReadAll(req.Body)
+        fmt.Fprintf(res, "Healthy\n")
+    }
+    mux.HandleFunc("/health", healthcheck)
+    s := http.Server{
+        Addr:    fmt.Sprintf(":%d", *http_port),
+        Handler: mux,
+    }
+    log.Fatal(s.ListenAndServe())
 }
 

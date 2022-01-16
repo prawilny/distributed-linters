@@ -260,12 +260,15 @@ func main() {
     go grpcServer.Serve(lis)
 
     mux := http.NewServeMux()
-    mux.HandleFunc("/lint/", func(res http.ResponseWriter, req *http.Request) {
+    mux.HandleFunc("/lint", func(res http.ResponseWriter, req *http.Request) {
         for {
             if lbServer.handleLintRequest(res, req) {
                 break
             }
         }
+    })
+    mux.HandleFunc("/health", func(res http.ResponseWriter, req *http.Request) {
+        fmt.Fprintf(res, "Healthy\n")
     })
     s := http.Server{
         Addr:    fmt.Sprintf("%s:%d", *listen_addr, *data_port),
