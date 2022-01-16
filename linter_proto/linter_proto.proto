@@ -69,8 +69,13 @@ message LinterResponse {
     Code code = 1;
 }
 
+message Language {
+    string language = 1;
+}
+
 service MachineManager {
     rpc AppendLinter(AppendLinterRequest) returns (LinterResponse) {}
     rpc RemoveLinter(LinterAttributes) returns (LinterResponse) {}
     rpc SetProportions(LoadBalancingProportions) returns (LinterResponse) {}
+    rpc ListVersions(Language) returns (LoadBalancingProportions) {}
 }
