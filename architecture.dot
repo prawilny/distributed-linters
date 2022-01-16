@@ -1,21 +1,18 @@
 // dot architecture.dot -Tsvg > architecture.svg
 
-digraph {
-    Client -> ExtLoadBalancer [label="http request"];
-    ExtLoadBalancer -> LoadBalancer [label="http request"];
-    LoadBalancer -> Linter [label="lint"];
+graph {
+    Admin -- MachineManager[label="set LB config"];
+    Admin -- ContainerRegistry[label="push container images"];
+    ContainerRegistry -- Kubernetes [style="dashed"];
 
-    MachineManager -> etcd[label="lastest config", dir="both"];
-    etcd -> MachineSpawner [label="watch machine list"];
-    MachineManager -> LoadBalancer[label="set LB config"];
+    Client -- ExtLoadBalancer [label="http request"];
+    ExtLoadBalancer -- LoadBalancer [label="http request"];
+    LoadBalancer -- Linter [label="lint"];
 
-    Kubernetes -> Linter [style="dashed", label="manage"];
-
-    MachineSpawner -> MachineManager[label="append/delete linter/LB"];
-    MachineSpawner -> MachineManager[label="set LB config"];
-
-    Admin -> MachineSpawner[label="set LB config"];
-
-    Admin -> Kubernetes[label="manage deployments"];
-    Kubernetes -> etcd[label="store machine list"];
+    Kubernetes -- Linter [style="dashed", label="manage"];
+    Kubernetes -- etcd[label="store machine list"];
+    etcd -- MachineManager [label="watch machine list"];
+    MachineManager -- etcd[label="latest weights"];
+    MachineManager -- Kubernetes[label="create deployments"];
+    MachineManager -- LoadBalancer[label="set LB config"];
 }
