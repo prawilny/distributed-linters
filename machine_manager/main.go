@@ -234,6 +234,7 @@ func deploymentFromLabels(lang language, ver version, imageUrl string) appsv1.De
 		"version":  ver,
 		"language": lang,
 		"app":      linterName,
+		"xd":      "linter",
 	}
 	return appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
