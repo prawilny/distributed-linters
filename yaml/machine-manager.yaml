@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: machine-manager-service
+  labels:
+    app: machine-manager
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http-port
+    port: 2137
+    targetPort: 2137
+    protocol: TCP
+  selector:
+    app: machine-manager
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: machine-manager
+  labels:
+    app: machine-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: machine-manager
+  template:
+    metadata:
+      labels:
+        app: machine-manager
+    spec:
+      containers:
+      - name: machine-manager
+        image: machine_manager_container
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 2137

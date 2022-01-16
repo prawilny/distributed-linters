@@ -17,3 +17,6 @@ containers: machine_manager_container loadbalancer_container python_linter_conta
 
 clean:
 	rm *_bin
+
+linter_proto/linter_proto.pb.go: linter_proto/linter_proto.proto
+linter_proto/linter_proto_grpc.pb.go: linter_proto/linter_proto.proto

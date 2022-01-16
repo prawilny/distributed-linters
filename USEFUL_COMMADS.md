@@ -5,39 +5,12 @@ kubectl create clusterrolebinding serviceaccounts-cluster-admin \
 
 eval $(minikube -p minikube docker-env)
 
+minikube tunnel
+
 make
 
-``` mm.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: machine-manager
-  labels:
-    app: irio
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: irio
-  template:
-    metadata:
-      labels:
-        app: irio
-    spec:
-      containers:
-      - name: machine-manager
-        image: machine_manager_container
-        imagePullPolicy: Never
-        ports:
-        - containerPort: 2137
-```
-
-kubectl apply -f mm.yaml
-
-kubectl expose deployment machine-manager --type=LoadBalancer --name=machine-manager-exposed
+kubectl apply -f yaml/
 
 kubectl get services <- IP
-
-minikube tunnel
 
 ./admin IP:2137 add_version -image_url=python_linter_container -language=python -version=1.0

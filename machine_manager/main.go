@@ -190,6 +190,7 @@ func deploymentFromLabels(lang language, ver version, imageUrl string) appsv1.De
 	labels := map[string]string{
 		"version":  ver,
 		"language": lang,
+		"app":      linterName,
 	}
 	return appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
