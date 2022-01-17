@@ -69,11 +69,12 @@ metadata:
   labels:
     kubernetes.io/bootstrapping: rbac-defaults
   name: admin-pods
+  namespace: default
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: admin-pods
 subjects:
-- apiGroup: rbac.authorization.k8s.io
-  kind: User
+- kind: ServiceAccount
   name: machine-user
+  namespace: default
