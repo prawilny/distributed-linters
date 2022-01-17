@@ -401,17 +401,22 @@ func (s *MachineManagerServer) RemoveLinter(ctx context.Context, req *pb.LinterA
 }
 
 func (s *MachineManagerServer) SetProportions(ctx context.Context, req *pb.LoadBalancingProportions) (*pb.LinterResponse, error) {
-	for _, weight := range req.Weights {
-		lang := Language(weight.Attrs.Language)
-		ver := Version(weight.Attrs.Version)
-		s.mut.Lock()
-		hasMachines := s.State.hasMachinesFor(lang, ver)
-		s.mut.Unlock()
-		if !hasMachines {
-			log.Printf("attempt to set nonzero weight of %f for nonexistent linter %s \n", weight.Weight, deploymentNameFromAttrs(lang, ver))
-			return &pb.LinterResponse{Code: 1}, nil
+	// TODO: limit concurrency (goroutine for replacing weights and storing state)
+	// candidate weights
+	// gorouting: check state, persist, show to lbs
+
+	/*
+		for _, weight := range req.Weights {
+			lang := Language(weight.Attrs.Language)
+			ver := Version(weight.Attrs.Version)
+			s.mut.Lock()
+			hasMachines := s.State.hasMachinesFor(lang, ver)
+			s.mut.Unlock()
+			if !hasMachines {
+				log.Printf("attempt to set nonzero weight of %f for nonexistent linter %s \n", weight.Weight, deploymentNameFromAttrs(lang, ver))
+				return &pb.LinterResponse{Code: 1}, nil
 		}
-	}
+		}*/
 	s.mut.Lock()
 	s.State.Persistent.Weights = req.Weights
 	s.storeState()
@@ -430,11 +435,11 @@ func (s *MachineManagerServer) handlePodEvents() {
 				lang:    *event.Language,
 				ver:     *event.Version,
 			}
-			s.storeState()
 			s.mut.Unlock()
 			s.pushLoadbalancerProportions()
 		case ADD_LB:
 			cmdChan := make(chan bool, 1)
+			cmdChan <- true
 			lbAddr := fmt.Sprintf("%s:%d", string(*event.Addr), load_balancer_port)
 
 			conn, err := grpc.Dial(lbAddr, grpc_opts...)
@@ -452,11 +457,13 @@ func (s *MachineManagerServer) handlePodEvents() {
 						Workers: s.State.getWorkers(),
 						Weights: s.State.Persistent.Weights,
 					}
+					// TODO: You can't carry shared state out of a mutex. You have to make a copy to read it inside SetConfig.
 					s.mut.Unlock()
 					for i := 0; i < num_retries; i++ {
 						goCtx, cancelGoCtx := context.WithTimeout(ctx, requestTimeout)
 
 						_, err = client.SetConfig(goCtx, &config)
+						// TODO: Retry infinitely. Sleep between retries. Break the loop when the error is "cancelled".
 						if err != nil {
 							log.Printf("failed to set config on a load balancer %s: %s", event.Name, err)
 						}
@@ -467,13 +474,11 @@ func (s *MachineManagerServer) handlePodEvents() {
 					}
 				}
 			}()
-			s.mut.Lock()
 			s.State.LoadBalancers[*event.Name] = LBInfo{
 				conn:        *conn,
 				cancelCtx:   cancelCtx,
 				commandChan: cmdChan,
 			}
-			s.mut.Unlock()
 		case REMOVE_POD:
 			if lbInfo, isLb := s.State.LoadBalancers[*event.Name]; isLb {
 				delete(s.State.LoadBalancers, *event.Name)
@@ -485,7 +490,6 @@ func (s *MachineManagerServer) handlePodEvents() {
 				_, isWorker := s.State.Linters[*event.Name]
 				if isWorker {
 					delete(s.State.Linters, *event.Name)
-					s.storeState()
 				}
 				s.mut.Unlock()
 				if isWorker {
