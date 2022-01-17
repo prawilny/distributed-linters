@@ -14,6 +14,11 @@ spec:
   selector:
     app: machine-manager
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: machine-user
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -36,6 +41,7 @@ spec:
         imagePullPolicy: Never
         ports:
         - containerPort: 2137
+      serviceAccountName: machine-user
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -43,3 +49,31 @@ metadata:
   name: machine-manager-config-map
 data:
   json: ""
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: admin-pods
+  namespace: default
+rules:
+- apiGroups: [""]
+  resources: ["pods", "configmaps"] # pods
+  verbs: ["list", "get", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  annotations:
+    rbac.authorization.kubernetes.io/autoupdate: "true"
+  creationTimestamp: null
+  labels:
+    kubernetes.io/bootstrapping: rbac-defaults
+  name: admin-pods
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: admin-pods
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: machine-user
