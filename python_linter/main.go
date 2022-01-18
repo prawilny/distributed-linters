@@ -6,19 +6,26 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+
 	//"io"
 	"io/ioutil"
 	"log"
+
 	//"math"
 	"net"
 	"regexp"
 	"unicode/utf8"
+
 	//"sync"
 	//"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
 	//"google.golang.org/grpc/credentials"
 	//"google.golang.org/grpc/examples/data"
 	//"github.com/golang/protobuf/proto"
@@ -48,6 +55,18 @@ func merge(a []int, b []int) []int {
 var (
 	health_addr = flag.String("health-addr", ":60000", "The HTTP healthcheck port")
 	data_addr   = flag.String("data-addr", ":20000", "The GRPC data port")
+	lintCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "python_linter_lints",
+		Help: "The total number of received lint requests",
+	})
+	healthcheckCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "python_linter_healthchecks",
+		Help: "The total number of received healthcheck requests",
+	})
+	metricCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "python_linters_metrics",
+		Help: "The total number of received metrics requests",
+	})
 )
 
 type linterServer struct {
@@ -64,6 +83,7 @@ func makeLinterServer() *linterServer {
 }
 
 func (s *linterServer) Lint(ctx context.Context, req *pb.LintRequest) (*pb.LintResponse, error) {
+	lintCounter.Inc()
 	text := req.Content
 	if !utf8.Valid(req.Content) {
 		return nil, status.Error(codes.InvalidArgument, "Request text is not valid utf-8")
@@ -114,11 +134,15 @@ func main() {
 	go grpcServer.Serve(lis)
 
 	mux := http.NewServeMux()
-	healthcheck := func(res http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("/health", func(res http.ResponseWriter, req *http.Request) {
+		healthcheckCounter.Inc()
 		ioutil.ReadAll(req.Body)
 		fmt.Fprintf(res, "Healthy\n")
-	}
-	mux.HandleFunc("/health", healthcheck)
+	})
+	mux.HandleFunc("/metrics", func(res http.ResponseWriter, req *http.Request) {
+		metricCounter.Inc()
+		promhttp.Handler().ServeHTTP(res, req)
+	})
 	s := http.Server{
 		Addr:    *health_addr,
 		Handler: mux,

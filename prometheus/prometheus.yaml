@@ -1,0 +1,81 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: prometheus
+  labels:
+    app: prometheus
+spec:
+  image: quay.io/prometheus/prometheus:v2.22.1
+  nodeSelector:
+    kubernetes.io/os: linux
+  replicas: 2
+  resources:
+    requests:
+      memory: 400Mi
+  securityContext:
+    fsGroup: 2000
+    runAsNonRoot: true
+    runAsUser: 1000
+  serviceAccountName: prometheus
+  version: v2.22.1
+  serviceMonitorSelector: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  labels:
+    app: prometheus-svc
+spec:
+  type: LoadBalancer
+  ports:
+  - name: web
+    protocol: TCP
+    port: 9090
+    targetPort: 9090
+  selector:
+    prometheus: prometheus # TODO: fix
+  sessionAffinity: ClientIP
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus
+rules:
+- apiGroups: [""]
+  resources:
+  - nodes
+  - nodes/metrics
+  - services
+  - endpoints
+  - pods
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources:
+  - configmaps
+  verbs: ["get"]
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs: ["get", "list", "watch"]
+- nonResourceURLs: ["/metrics"]
+  verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus
+subjects:
+- kind: ServiceAccount
+  name: prometheus
+  namespace: default
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus

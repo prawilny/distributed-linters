@@ -18,13 +18,34 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/status"
+
 	//"github.com/davecgh/go-spew/spew"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
 	listen_addr = flag.String("address", "", "The server address")
 	data_addr   = flag.String("data-addr", ":20000", "The HTTP data and healthcheck port")
 	admin_addr  = flag.String("admin-addr", ":10000", "The GRPC admin port")
+	lintCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "loadbalancer_lints",
+		Help: "The total number of received lint requests",
+	})
+	setConfigCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "loadbalancer_set_configs",
+		Help: "The total number of received setConfig requests",
+	})
+	healthcheckCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "loadbalancer_healthchecks",
+		Help: "The total number of received healthcheck requests",
+	})
+	metricCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "loadbalancer_metrics",
+		Help: "The total number of received metrics requests",
+	})
 )
 
 type workerConnectionState = int32
@@ -62,6 +83,7 @@ type loadBalancerServer struct {
 }
 
 func (s *loadBalancerServer) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.SetConfigResponse, error) {
+	setConfigCounter.Inc()
 	conf := make(map[string]languageConfig)
 	for _, w := range req.Workers {
 		addr := w.Address
@@ -258,6 +280,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/lint", func(res http.ResponseWriter, req *http.Request) {
+		lintCounter.Inc()
 		for {
 			if lbServer.handleLintRequest(res, req) {
 				break
@@ -265,7 +288,12 @@ func main() {
 		}
 	})
 	mux.HandleFunc("/health", func(res http.ResponseWriter, req *http.Request) {
+		healthcheckCounter.Inc()
 		fmt.Fprintf(res, "Healthy\n")
+	})
+	mux.HandleFunc("/metrics", func(res http.ResponseWriter, req *http.Request) {
+		metricCounter.Inc()
+		promhttp.Handler().ServeHTTP(res, req)
 	})
 	s := http.Server{
 		Addr:    *data_addr,

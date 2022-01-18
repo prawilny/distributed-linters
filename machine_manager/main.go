@@ -16,6 +16,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+
 	//"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/status"
 
@@ -34,6 +35,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	ctrlClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const (
@@ -105,13 +110,33 @@ const (
 	requestTimeout                      = 3 * time.Second
 	machine_manager_config_map          = "machine-manager-config-map"
 	machine_manager_config_map_data_key = "json"
-	load_balancer_port                  = 33333
 	num_retries                         = 3
 )
 
 var (
 	admin_addr  = flag.String("admin-addr", ":10000", "The Admin CLI Listen address (with port)")
 	health_addr = flag.String("health-addr", ":60000", "The HTTP healthcheck listen address (with port)")
+
+	warningCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "machine_manager_warnings",
+		Help: "The total number of warnings issued by the machine manager",
+	})
+	configPushCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "machine_manager_config_pushes",
+		Help: "The number (excluding retries) of attempts to propagate configuration to load balancers",
+	})
+	configPushRetriesCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "machine_manager_config_push_retries",
+		Help: "The number of retries to propagate configuration to load balancers",
+	})
+	healthcheckCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "machine_manager_healthchecks",
+		Help: "The total number of received healthcheck requests",
+	})
+	metricCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "machine_manager_metrics",
+		Help: "The total number of received metrics requests",
+	})
 )
 
 func (a *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -128,6 +153,7 @@ func (a *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		}
 		a.mut.Unlock()
 	} else if err != nil {
+		warningCounter.Inc()
 		log.Printf("Error processing event for %s: %s\n", req.NamespacedName, err)
 		return ctrl.Result{}, err
 	} else {
@@ -161,6 +187,7 @@ func (a *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 					Name:     req.NamespacedName,
 				}
 			} else {
+				warningCounter.Inc()
 				log.Printf("Warning: created linter pod %s has no 'data' port. Ignoring it.\n")
 			}
 		case "loadbalancer":
@@ -178,9 +205,11 @@ func (a *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 					Addr: (Address)(fmt.Sprintf("%s:%d", pod.Status.PodIP, admin_port)),
 				}
 			} else {
+				warningCounter.Inc()
 				log.Printf("Warning: created load balancer pod %s has no 'admin' port. Ignoring it.\n")
 			}
 		default:
+			warningCounter.Inc()
 			log.Printf("Warning: created pod %s has unknown type : %s\n", req.NamespacedName, pod.Labels[markerLabel])
 		}
 	} else if deleted {
@@ -196,6 +225,7 @@ func (a *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 				Name: req.NamespacedName,
 			}
 		} else {
+			warningCounter.Inc()
 			log.Printf("Warning: deleted pod %s has unknown type : %s\n", req.NamespacedName, pod.Labels[markerLabel])
 		}
 	} else {
@@ -512,6 +542,7 @@ func (s *MachineManagerServer) handlePodEvents() {
 			lbCtx, cancelLbCtx := context.WithCancel(context.Background())
 			go func() {
 				for _ = range cmdChan {
+					configPushCounter.Inc()
 					for {
 						s.mut.Lock()
 						config := pb.SetConfigRequest{
@@ -530,6 +561,7 @@ func (s *MachineManagerServer) handlePodEvents() {
 								log.Printf("Disconnected from load balancer %s\n", event.Name, err)
 								return
 							default:
+								configPushRetriesCounter.Inc()
 								log.Printf("Failed to push config to load balancer %s: %s. Retrying in 1 second.\n", event.Name, err)
 								select {
 								case <-lbCtx.Done():
@@ -571,6 +603,7 @@ func (s *MachineManagerServer) handlePodEvents() {
 			scheduleUpdate()
 			log.Printf("Updated version load proportions\n")
 		default:
+			warningCounter.Inc()
 			log.Printf("Unknown PodEvent type: %d\n", event.Type)
 		}
 	}
@@ -581,11 +614,15 @@ func main() {
 	log.Printf("Starting machine manager\n")
 
 	mux := http.NewServeMux()
-	healthcheck := func(res http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("/health", func(res http.ResponseWriter, req *http.Request) {
+		healthcheckCounter.Inc()
 		ioutil.ReadAll(req.Body)
 		fmt.Fprintf(res, "Healthy\n")
-	}
-	mux.HandleFunc("/health", healthcheck)
+	})
+	mux.HandleFunc("/metrics", func(res http.ResponseWriter, req *http.Request) {
+		metricCounter.Inc()
+		promhttp.Handler().ServeHTTP(res, req)
+	})
 	s := http.Server{
 		Addr:    *health_addr,
 		Handler: mux,
