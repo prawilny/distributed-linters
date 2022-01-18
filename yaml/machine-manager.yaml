@@ -11,6 +11,10 @@ spec:
     port: 10000
     targetPort: 10000
     protocol: TCP
+  - name: health
+    port: 60000
+    targetPort: 60000
+    protocol: TCP
   selector:
     app: machine-manager
 ---

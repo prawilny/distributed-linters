@@ -1,0 +1,61 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: machine-manager
+  labels:
+    app: machine-manager
+spec:
+  endpoints:
+  - interval: 1s
+    port: health
+  selector:
+    matchLabels:
+      app: machine-manager
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: loadbalancer
+  labels:
+    app: loadbalancer
+spec:
+  endpoints:
+  - interval: 1s
+    port: data
+  selector:
+    matchLabels:
+      app: loadbalancer
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: linter
+  labels:
+    app: linter
+spec:
+  endpoints:
+  - interval: 1s
+    port: health
+  selector:
+    matchLabels:
+      app: linter
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: linter
+  labels:
+    app: linter
+spec:
+  type: LoadBalancer
+  ports:
+  - name: data
+    port: 20000
+    targetPort: 20000
+    protocol: TCP
+  - name: health
+    port: 60000
+    targetPort: 60000
+    protocol: TCP
+  selector:
+    xD: linter
