@@ -23,8 +23,8 @@ import (
 
 var (
 	listen_addr = flag.String("address", "", "The server address")
-	data_port   = flag.Int("data-port", -1, "The HTTP data port")
-	admin_port  = flag.Int("admin-port", -1, "The GRPC admin port")
+	data_addr   = flag.String("data-addr", ":20000", "The HTTP data and healthcheck port")
+	admin_addr  = flag.String("admin-addr", ":10000", "The GRPC admin port")
 )
 
 type workerConnectionState = int32
@@ -64,7 +64,7 @@ type loadBalancerServer struct {
 func (s *loadBalancerServer) SetConfig(ctx context.Context, req *pb.SetConfigRequest) (*pb.SetConfigResponse, error) {
 	conf := make(map[string]languageConfig)
 	for _, w := range req.Workers {
-		addr := fmt.Sprintf("%s:%d", w.Address, w.Port)
+		addr := w.Address
 		if _, ok := conf[w.Attrs.Language]; !ok {
 			conf[w.Attrs.Language] = makeLanguageConfig()
 		}
@@ -165,8 +165,8 @@ func (lbServer *loadBalancerServer) handleLintRequest(res http.ResponseWriter, r
 	lbServer.mut.Lock()
 	_, ok := lbServer.config[lang]
 	if !ok {
-		http.Error(res, fmt.Sprintf("Lang %s currently unavailable", lang), http.StatusServiceUnavailable)
 		lbServer.mut.Unlock()
+		http.Error(res, fmt.Sprintf("Lang %s currently unavailable", lang), http.StatusServiceUnavailable)
 		return true
 	}
 
@@ -240,14 +240,8 @@ func (lbServer *loadBalancerServer) handleLintRequest(res http.ResponseWriter, r
 
 func main() {
 	flag.Parse()
-	if *data_port < 0 {
-		log.Fatalf("Bad -data-port: %d", *data_port)
-	}
-	if *admin_port < 0 {
-		log.Fatalf("Bad -admin-port: %d", *admin_port)
-	}
 
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *listen_addr, *admin_port))
+	lis, err := net.Listen("tcp", *admin_addr)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -274,7 +268,7 @@ func main() {
 		fmt.Fprintf(res, "Healthy\n")
 	})
 	s := http.Server{
-		Addr:    fmt.Sprintf("%s:%d", *listen_addr, *data_port),
+		Addr:    *data_addr,
 		Handler: mux,
 	}
 	log.Fatal(s.ListenAndServe())

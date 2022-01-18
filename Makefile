@@ -7,7 +7,7 @@ all: containers
 containers: machine_manager_container loadbalancer_container python_linter_container
 
 %_container: Dockerfile %_bin
-	docker build . --tag $@ --target $*
+	podman-remote build . --tag $@ --target $*
 
 %.pb.go: %.proto
 	protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative $<

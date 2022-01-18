@@ -7,9 +7,9 @@ metadata:
 spec:
   type: LoadBalancer
   ports:
-  - name: http-port
-    port: 2137
-    targetPort: 2137
+  - name: admin
+    port: 10000
+    targetPort: 10000
     protocol: TCP
   selector:
     app: machine-manager
@@ -26,6 +26,10 @@ metadata:
   labels:
     app: machine-manager
 spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   replicas: 1
   selector:
     matchLabels:
@@ -37,18 +41,19 @@ spec:
     spec:
       containers:
       - name: machine-manager
-        image: machine_manager_container
+        image: localhost/machine_manager_container
         imagePullPolicy: Never
         ports:
-        - containerPort: 2137
+        - containerPort: 10000
+          name: admin
+        - containerPort: 60000
+          name: health
+        args: ["-admin-addr=:10000", "-health-addr=:60000"]
+        livenessProbe:
+          httpGet:
+            path: "/health"
+            port: 60000
       serviceAccountName: machine-user
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: machine-manager-config-map
-data:
-  json: ""
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -57,8 +62,18 @@ metadata:
   namespace: default
 rules:
 - apiGroups: [""]
-  resources: ["pods", "configmaps"] # pods
-  verbs: ["list", "get", "watch", "create", "update", "patch", "delete"]
+  resources: ["pods"]
+  verbs: ["list", "get", "watch"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["create"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["machine-manager-config-map"]
+  verbs: ["list", "get", "watch", "create", "update", "delete"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["create", "delete"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

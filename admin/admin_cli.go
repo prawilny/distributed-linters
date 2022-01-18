@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	listen_addr = flag.String("address", "0.0.0.0:1337", "The Machine Spawner address")
+	listen_addr = flag.String("address", "0.0.0.0:1337", "machine manager address")
 
 	addVersion   = flag.NewFlagSet("add_version", flag.ExitOnError)
 	imageUrl     = addVersion.String("image_url", "(invalid)", "The linter container image url")
@@ -26,8 +26,8 @@ var (
 	language_remove = removeVersion.String("language", "forth", "Language to be used")
 	version_remove  = removeVersion.String("version", "(optimized out)", "Version")
 
-	listVersions = flag.NewFlagSet("list_versions", flag.ExitOnError)
-    language_list = listVersions.String("language", "forth", "Language to show versions")
+	listVersions  = flag.NewFlagSet("list_versions", flag.ExitOnError)
+	language_list = listVersions.String("language", "forth", "Language to show versions")
 
 	transportCreds = grpc.WithTransportCredentials(insecure.NewCredentials())
 )
@@ -76,8 +76,8 @@ func remove_version(args []string) {
 	}
 
 	linterVersion := pb.LinterAttributes{
-		Language: *language_add,
-		Version:  *version_add,
+		Language: *language_remove,
+		Version:  *version_remove,
 	}
 	conn := dial(*listen_addr)
 	defer conn.Close()
@@ -122,7 +122,7 @@ func set_proportions(args []string) {
 }
 
 func list_versions(args []string) {
-    listVersions.Parse(args)
+	listVersions.Parse(args)
 
 	conn := dial(*listen_addr)
 	defer conn.Close()
@@ -130,7 +130,7 @@ func list_versions(args []string) {
 
 	ctx, ctx_cancel := context.WithTimeout(context.Background(), time.Second)
 	defer ctx_cancel()
-    r, err := c.ListVersions(ctx, &pb.Language {Language: *language_list})
+	r, err := c.ListVersions(ctx, &pb.Language{Language: *language_list})
 	if err != nil {
 		log.Fatalf("listing versions failed: %v", err)
 	}
@@ -138,7 +138,7 @@ func list_versions(args []string) {
 }
 
 func main() {
-	if len(os.Args) == 1 {
+	if len(os.Args) < 3 {
 		// TODO: binarki nazwę mi wstaw
 		fmt.Println("usage: admin <machine_manager_address> <command> [<args>]")
 		fmt.Println("subcommands: ")
@@ -158,10 +158,10 @@ func main() {
 		remove_version(rest_args)
 	case "set_proportions":
 		set_proportions(rest_args)
-    case "list_versions":
-        list_versions(rest_args)
+	case "list_versions":
+		list_versions(rest_args)
 	default:
-		fmt.Printf("%q is not valid command.\n", os.Args[1])
+		fmt.Printf("%q is not valid command.\n", os.Args[2])
 		os.Exit(2)
 	}
 }

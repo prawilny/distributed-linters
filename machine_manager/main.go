@@ -5,19 +5,25 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	pb "irio/linter_proto"
 	"log"
 	"net"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	//"google.golang.org/grpc/connectivity"
+	"google.golang.org/grpc/status"
 
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
@@ -31,9 +37,12 @@ import (
 )
 
 const (
-	ADD_WORKER PodEventType = iota
-	ADD_LB     PodEventType = iota
-	REMOVE_POD PodEventType = iota
+	ADD_WORKER               PodEventType = iota
+	ADD_LB                   PodEventType = iota
+	REMOVE_WORKER            PodEventType = iota
+	REMOVE_LB                PodEventType = iota
+	PERSISTENT_STATE_UDPATED PodEventType = iota
+	DEBOUNCE_TIMER_EXPIRED   PodEventType = iota
 )
 
 const (
@@ -50,16 +59,14 @@ type Port int32
 
 type MachineManagerServer struct {
 	pb.UnimplementedMachineManagerServer
-	State      MachineManagerState
-	kubernetes kubernetes.Clientset
-	mut        sync.Mutex
-	eventChan  chan *PodEvent
-}
-
-type MachineManagerState struct {
-	Persistent    MachineManagerPersistentState
-	LoadBalancers map[types.NamespacedName]LBInfo
-	Linters       map[types.NamespacedName]WorkerInfo
+	kubernetes          *kubernetes.Clientset
+	mut                 sync.Mutex
+	eventChan           chan *PodEvent
+	candidateUpdateChan chan bool
+	CandidateState      MachineManagerPersistentState
+	PersistentState     MachineManagerPersistentState
+	LoadBalancers       map[types.NamespacedName]LBInfo
+	Linters             map[types.NamespacedName]WorkerInfo
 }
 
 type MachineManagerPersistentState struct {
@@ -73,27 +80,23 @@ type WorkerInfo struct {
 }
 
 type LBInfo struct {
-	conn        grpc.ClientConn
+	conn        *grpc.ClientConn
 	cancelCtx   context.CancelFunc
 	commandChan chan<- bool
 }
 
 type PodEvent struct {
 	Type     PodEventType
-	Name     *types.NamespacedName
-	Addr     *Address
-	Version  *Version
-	Language *Language
-}
-
-type podInfo struct {
-	address string
+	Name     types.NamespacedName
+	Addr     Address
+	Version  Version
+	Language Language
 }
 
 type PodReconciler struct {
 	ctrlClient.Client
 	mut    sync.Mutex
-	pods   map[string]podInfo
+	pods   map[string]*corev1.Pod
 	events chan<- *PodEvent
 }
 
@@ -103,13 +106,12 @@ const (
 	machine_manager_config_map          = "machine-manager-config-map"
 	machine_manager_config_map_data_key = "json"
 	load_balancer_port                  = 33333
-	linter_port                         = 55555
 	num_retries                         = 3
 )
 
 var (
-	listen_addr = flag.String("address", ":2137", "The Admin CLI Listen address (with port)")
-	grpc_opts   = []grpc.DialOption{grpc.WithBlock(), grpc.WithInsecure()}
+	admin_addr  = flag.String("admin-addr", ":10000", "The Admin CLI Listen address (with port)")
+	health_addr = flag.String("health-addr", ":60000", "The HTTP healthcheck listen address (with port)")
 )
 
 func (a *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -117,53 +119,22 @@ func (a *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	err := a.Get(ctx, req.NamespacedName, pod)
 	deleted := false
 	created := false
-	info := podInfo{}
 	ok := true
 	if apierrors.IsNotFound(err) {
 		a.mut.Lock()
-		if info, ok = a.pods[req.NamespacedName.String()]; ok {
+		if pod, ok = a.pods[req.NamespacedName.String()]; ok {
 			delete(a.pods, req.NamespacedName.String())
 			deleted = true
-
-			a.events <- &PodEvent{
-				Type: REMOVE_POD,
-				Name: &req.NamespacedName,
-			}
 		}
 		a.mut.Unlock()
 	} else if err != nil {
-		fmt.Printf("Error processing event for %s: %s\n", req.NamespacedName, err)
+		log.Printf("Error processing event for %s: %s\n", req.NamespacedName, err)
 		return ctrl.Result{}, err
 	} else {
 		if pod.Status.Phase == corev1.PodRunning {
 			a.mut.Lock()
 			if _, ok = a.pods[req.NamespacedName.String()]; !ok {
-				address := pod.Status.PodIP
-				a.pods[req.NamespacedName.String()] = podInfo{
-					address: address,
-				}
-
-				role := LOAD_BALANCER
-				if pod.Labels[markerLabel] == "linter" {
-					role = LINTER
-				}
-				event := PodEvent{
-					Type: ADD_LB,
-					Name: &req.NamespacedName,
-					Addr: (*Address)(&address),
-				}
-				if role == LOAD_BALANCER {
-					event.Type = ADD_LB
-				} else {
-					event.Type = ADD_WORKER
-					ver := Version(pod.Labels["version"])
-					lang := Language(pod.Labels["language"])
-					event.Version = &ver
-					event.Language = &lang
-				}
-				a.events <- &event
-
-				info = a.pods[req.NamespacedName.String()]
+				a.pods[req.NamespacedName.String()] = pod
 				created = true
 			}
 			a.mut.Unlock()
@@ -171,22 +142,74 @@ func (a *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	}
 
 	if created {
-		log.Printf("Created: %s %v\n", req.NamespacedName, info)
+		log.Printf("Created: pod %s\n", req.NamespacedName)
+		switch pod.Labels[markerLabel] {
+		case "linter":
+			data_port := -1
+			for _, p := range pod.Spec.Containers[0].Ports {
+				if p.Name == "data" {
+					data_port = int(p.ContainerPort)
+					break
+				}
+			}
+			if data_port > 0 {
+				a.events <- &PodEvent{
+					Type:     ADD_WORKER,
+					Version:  Version(pod.Labels["version"]),
+					Language: Language(pod.Labels["language"]),
+					Addr:     (Address)(fmt.Sprintf("%s:%d", pod.Status.PodIP, data_port)),
+					Name:     req.NamespacedName,
+				}
+			} else {
+				log.Printf("Warning: created linter pod %s has no 'data' port. Ignoring it.\n")
+			}
+		case "loadbalancer":
+			admin_port := -1
+			for _, p := range pod.Spec.Containers[0].Ports {
+				if p.Name == "admin" {
+					admin_port = int(p.ContainerPort)
+					break
+				}
+			}
+			if admin_port > 0 {
+				a.events <- &PodEvent{
+					Type: ADD_LB,
+					Name: req.NamespacedName,
+					Addr: (Address)(fmt.Sprintf("%s:%d", pod.Status.PodIP, admin_port)),
+				}
+			} else {
+				log.Printf("Warning: created load balancer pod %s has no 'admin' port. Ignoring it.\n")
+			}
+		default:
+			log.Printf("Warning: created pod %s has unknown type : %s\n", req.NamespacedName, pod.Labels[markerLabel])
+		}
 	} else if deleted {
-		log.Printf("Deleted: %s %v\n", req.NamespacedName, info)
+		log.Printf("Deleted: pod %s\n", req.NamespacedName)
+		if pod.Labels[markerLabel] == "linter" {
+			a.events <- &PodEvent{
+				Type: REMOVE_WORKER,
+				Name: req.NamespacedName,
+			}
+		} else if pod.Labels[markerLabel] == "loadbalancer" {
+			a.events <- &PodEvent{
+				Type: REMOVE_LB,
+				Name: req.NamespacedName,
+			}
+		} else {
+			log.Printf("Warning: deleted pod %s has unknown type : %s\n", req.NamespacedName, pod.Labels[markerLabel])
+		}
 	} else {
-		log.Printf("Changed: %s\n", req.NamespacedName)
+		log.Printf("Changed: pod %s\n", req.NamespacedName)
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (mms *MachineManagerState) getWorkers() []*pb.Worker {
+func (mms *MachineManagerServer) getWorkerListCopy() []*pb.Worker {
 	workers := []*pb.Worker{}
 	for _, worker := range mms.Linters {
 		workers = append(workers, &pb.Worker{
 			Address: string(worker.address),
-			Port:    linter_port,
 			Attrs: &pb.LinterAttributes{
 				Language: string(worker.lang),
 				Version:  string(worker.ver),
@@ -196,27 +219,10 @@ func (mms *MachineManagerState) getWorkers() []*pb.Worker {
 	return workers
 }
 
-func (mms *MachineManagerState) hasMachinesFor(lang Language, ver Version) bool {
-	for _, worker := range mms.Linters {
-		if worker.lang == lang && worker.ver == ver {
-			return true
-		}
-	}
-	return false
-}
-
-func makeMachineManager() MachineManagerServer {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		panic(err.Error())
-	}
-	kubernetes, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		panic(err.Error())
-	}
-	eventChan := make(chan *PodEvent)
-
-	manager, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{})
+func runReconciler(eventChan chan *PodEvent) {
+	manager, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		Namespace: "default",
+	})
 	if err != nil {
 		panic("couldn't create manager: " + err.Error())
 	}
@@ -231,7 +237,7 @@ func makeMachineManager() MachineManagerServer {
 		For(&corev1.Pod{}, builder.WithPredicates(pred)).
 		Complete(&PodReconciler{
 			Client: manager.GetClient(),
-			pods:   make(map[string]podInfo),
+			pods:   make(map[string]*corev1.Pod),
 			events: eventChan,
 		})
 	if err != nil {
@@ -243,34 +249,60 @@ func makeMachineManager() MachineManagerServer {
 		panic("could not start manager: " + err.Error())
 	}
 
-	state := MachineManagerState{
-		Persistent: MachineManagerPersistentState{
-			Weights: []*pb.Weight{},
-		},
-		LoadBalancers: make(map[types.NamespacedName]LBInfo),
-		Linters:       make(map[types.NamespacedName]WorkerInfo),
+}
+
+func makeMachineManager() MachineManagerServer {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		panic(err.Error())
+	}
+	kubernetes, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	state := MachineManagerPersistentState{
+		Weights: []*pb.Weight{},
 	}
 
 	ctx, cancelCtx := context.WithTimeout(context.Background(), requestTimeout)
 	defer cancelCtx()
 
 	get, err := kubernetes.CoreV1().ConfigMaps(apiv1.NamespaceDefault).Get(ctx, machine_manager_config_map, metav1.GetOptions{})
-	if err != nil {
-		panic(err.Error())
-	}
-	jsonData := get.Data[machine_manager_config_map_data_key]
-	if len(jsonData) != 0 {
+	if err == nil {
+		jsonData := get.Data[machine_manager_config_map_data_key]
 		err = json.Unmarshal([]byte(jsonData), &state)
 		if err != nil {
 			panic(err.Error())
 		}
+	} else if apierrors.IsNotFound(err) {
+		serializedState, err := json.Marshal(state)
+		if err != nil {
+			panic("error serializing state: " + err.Error())
+		}
+		newMap := apiv1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "machine-manager-config-map",
+			},
+			Data: map[string]string{
+				machine_manager_config_map_data_key: string(serializedState),
+			},
+		}
+		_, err = kubernetes.CoreV1().ConfigMaps(apiv1.NamespaceDefault).Create(ctx, &newMap, metav1.CreateOptions{})
+		if err != nil {
+			panic(err.Error())
+		}
+	} else {
+		panic(err.Error())
 	}
 
-	// TODO: set sensible capacities of channels
 	return MachineManagerServer{
-		State:      state,
-		kubernetes: *kubernetes,
-		eventChan:  eventChan,
+		kubernetes:          kubernetes,
+		eventChan:           make(chan *PodEvent, 1),
+		candidateUpdateChan: make(chan bool, 1),
+		PersistentState:     state,
+		LoadBalancers:       make(map[types.NamespacedName]LBInfo),
+		Linters:             make(map[types.NamespacedName]WorkerInfo),
 	}
 }
 
@@ -310,9 +342,23 @@ func deploymentFromLabels(lang Language, ver Version, imageUrl string) appsv1.De
 							ImagePullPolicy: "Never",
 							Ports: []apiv1.ContainerPort{
 								{
-									Name:          "http",
+									Name:          "health",
 									Protocol:      apiv1.ProtocolTCP,
-									ContainerPort: int32(linter_port),
+									ContainerPort: 60000,
+								},
+								{
+									Name:          "data",
+									Protocol:      apiv1.ProtocolTCP,
+									ContainerPort: 20000,
+								},
+							},
+							Args: []string{"-data-addr=:20000", "-health-addr=:60000"},
+							LivenessProbe: &apiv1.Probe{
+								ProbeHandler: apiv1.ProbeHandler{
+									HTTPGet: &apiv1.HTTPGetAction{
+										Path: "/health",
+										Port: intstr.FromInt(60000),
+									},
 								},
 							},
 						},
@@ -332,38 +378,8 @@ func (s *MachineManagerPersistentState) linterWeight(lang Language, ver Version)
 	return 0
 }
 
-func (s *MachineManagerServer) pushLoadbalancerProportions() {
-	for _, lbInfo := range s.State.LoadBalancers {
-		select {
-		case lbInfo.commandChan <- true:
-		default:
-		}
-	}
-}
-
-func (s *MachineManagerServer) storeState() {
-	ctx, cancelCtx := context.WithTimeout(context.Background(), requestTimeout)
-	defer cancelCtx()
-
-	serializedState, err := json.Marshal(&s.State.Persistent.Weights)
-	if err != nil {
-		panic("error serializing state: " + err.Error())
-	}
-	updatedMap := apiv1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "machine-manager-config-map",
-		},
-		Data: map[string]string{
-			machine_manager_config_map_data_key: string(serializedState),
-		},
-	}
-	_, err = s.kubernetes.CoreV1().ConfigMaps(apiv1.NamespaceDefault).Update(ctx, &updatedMap, metav1.UpdateOptions{})
-	if err != nil {
-		panic("error saving state: " + err.Error())
-	}
-}
-
 func (s *MachineManagerServer) AppendLinter(ctx context.Context, req *pb.AppendLinterRequest) (*pb.LinterResponse, error) {
+	log.Printf("APPEND LINTER\n")
 	ctx, cancelCtx := context.WithTimeout(context.Background(), requestTimeout)
 	defer cancelCtx()
 
@@ -371,8 +387,7 @@ func (s *MachineManagerServer) AppendLinter(ctx context.Context, req *pb.AppendL
 	deployment := deploymentFromLabels(Language(req.Attrs.Language), Version(req.Attrs.Version), req.ImageUrl)
 	_, err := deploymentsClient.Create(ctx, &deployment, metav1.CreateOptions{})
 	if err != nil {
-		log.Println("error appending linter: " + err.Error())
-		return &pb.LinterResponse{Code: 1}, nil
+		return nil, status.Errorf(codes.Internal, "Error creating linter deployment %s: %s\n", deployment.ObjectMeta.Name, err)
 	}
 	return &pb.LinterResponse{Code: pb.LinterResponse_SUCCESS}, nil
 }
@@ -383,138 +398,213 @@ func (s *MachineManagerServer) RemoveLinter(ctx context.Context, req *pb.LinterA
 
 	lang := Language(req.Language)
 	ver := Version(req.Version)
-	deploymentsClient := s.kubernetes.AppsV1().Deployments(apiv1.NamespaceDefault)
 	deploymentName := deploymentNameFromAttrs(lang, ver)
 	s.mut.Lock()
-	linterWeight := s.State.Persistent.linterWeight(lang, ver)
+	linterWeight := s.PersistentState.linterWeight(lang, ver)
 	s.mut.Unlock()
 	if linterWeight > 0 {
-		log.Printf("attempt to remove linter %s of nonzero weight %f\n", deploymentName, linterWeight)
-		return &pb.LinterResponse{Code: pb.LinterResponse_SUCCESS}, nil
+		return nil, status.Errorf(codes.FailedPrecondition, "Error: attempted to remove linter deployment %s of nonzero weight %f\n", deploymentName, linterWeight)
 	}
+	deploymentsClient := s.kubernetes.AppsV1().Deployments(apiv1.NamespaceDefault)
 	err := deploymentsClient.Delete(ctx, deploymentName, metav1.DeleteOptions{})
 	if err != nil {
-		log.Println("error removing linter: " + err.Error())
-		return &pb.LinterResponse{Code: 1}, nil
+		if apierrors.IsNotFound(err) {
+			return nil, status.Errorf(codes.FailedPrecondition, "Error removing linter deployment %s: no such deployment\n", deploymentName)
+		} else {
+			return nil, status.Errorf(codes.Internal, "Error removing linter deployment %s: %s\n", deploymentName, err)
+		}
 	}
 	return &pb.LinterResponse{Code: pb.LinterResponse_SUCCESS}, nil
 }
 
 func (s *MachineManagerServer) SetProportions(ctx context.Context, req *pb.LoadBalancingProportions) (*pb.LinterResponse, error) {
-	// TODO: limit concurrency (goroutine for replacing weights and storing state)
-	// candidate weights
-	// gorouting: check state, persist, show to lbs
-
-	/*
-		for _, weight := range req.Weights {
-			lang := Language(weight.Attrs.Language)
-			ver := Version(weight.Attrs.Version)
-			s.mut.Lock()
-			hasMachines := s.State.hasMachinesFor(lang, ver)
-			s.mut.Unlock()
-			if !hasMachines {
-				log.Printf("attempt to set nonzero weight of %f for nonexistent linter %s \n", weight.Weight, deploymentNameFromAttrs(lang, ver))
-				return &pb.LinterResponse{Code: 1}, nil
-		}
-		}*/
 	s.mut.Lock()
-	s.State.Persistent.Weights = req.Weights
-	s.storeState()
+	s.CandidateState.Weights = req.Weights
 	s.mut.Unlock()
-	s.pushLoadbalancerProportions()
+	select {
+	case s.candidateUpdateChan <- true:
+	default:
+	}
 	return &pb.LinterResponse{Code: pb.LinterResponse_SUCCESS}, nil
 }
 
+func (s *MachineManagerServer) stateUpdater() {
+	for _ = range s.candidateUpdateChan {
+		log.Printf("Updating version load proportions\n")
+		s.mut.Lock()
+		// We don't have to copy this list, because it's never modified – only replaced.
+		state := s.CandidateState
+		s.mut.Unlock()
+
+		ctx, cancelCtx := context.WithCancel(context.Background())
+		defer cancelCtx()
+
+		serializedState, err := json.Marshal(state)
+		if err != nil {
+			panic("error serializing state: " + err.Error())
+		}
+		updatedMap := apiv1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "machine-manager-config-map",
+			},
+			Data: map[string]string{
+				machine_manager_config_map_data_key: string(serializedState),
+			},
+		}
+		_, err = s.kubernetes.CoreV1().ConfigMaps(apiv1.NamespaceDefault).Update(ctx, &updatedMap, metav1.UpdateOptions{})
+		if err != nil {
+			panic("error saving state: " + err.Error())
+		}
+
+		s.mut.Lock()
+		s.PersistentState = state
+		s.mut.Unlock()
+
+		s.eventChan <- &PodEvent{
+			Type: PERSISTENT_STATE_UDPATED,
+		}
+	}
+}
+
 func (s *MachineManagerServer) handlePodEvents() {
+	var debounceTimer *time.Timer
+	scheduleUpdate := func() {
+		log.Printf("Update scheduled\n")
+		if debounceTimer == nil {
+			debounceTimer = time.AfterFunc(time.Second*1, func() { s.eventChan <- &PodEvent{Type: DEBOUNCE_TIMER_EXPIRED} })
+		}
+	}
 	for event := range s.eventChan {
+		event := event
 		switch event.Type {
+		case DEBOUNCE_TIMER_EXPIRED:
+			debounceTimer = nil
+			log.Printf("Pushing update to load balancers\n")
+			for _, lbInfo := range s.LoadBalancers {
+				select {
+				case lbInfo.commandChan <- true:
+				default:
+				}
+			}
 		case ADD_WORKER:
+			log.Printf("Adding linter %s\n", event.Name)
 			s.mut.Lock()
-			s.State.Linters[*event.Name] = WorkerInfo{
-				address: *event.Addr,
-				lang:    *event.Language,
-				ver:     *event.Version,
+			s.Linters[event.Name] = WorkerInfo{
+				address: event.Addr,
+				lang:    event.Language,
+				ver:     event.Version,
 			}
 			s.mut.Unlock()
-			s.pushLoadbalancerProportions()
+			scheduleUpdate()
+			log.Printf("Added linter %s\n", event.Name)
 		case ADD_LB:
+			log.Printf("Adding load balancer %s\n", event.Name)
 			cmdChan := make(chan bool, 1)
-			cmdChan <- true
-			lbAddr := fmt.Sprintf("%s:%d", string(*event.Addr), load_balancer_port)
+			lbAddr := string(event.Addr)
 
-			conn, err := grpc.Dial(lbAddr, grpc_opts...)
+			conn, err := grpc.Dial(lbAddr, grpc.WithInsecure())
 			if err != nil {
-				log.Println("failed to dial %s: %s\n", lbAddr, err)
+				panic(fmt.Sprintf("Failed to dial %s: %s\n", lbAddr, err))
 			}
-			log.Printf("connected to: %v", lbAddr)
+			log.Printf("Connected to load balancer %s\n", event.Name)
 			client := pb.NewLoadBalancerClient(conn)
 
-			ctx, cancelCtx := context.WithTimeout(context.Background(), requestTimeout)
+			lbCtx, cancelLbCtx := context.WithCancel(context.Background())
 			go func() {
 				for _ = range cmdChan {
-					s.mut.Lock()
-					config := pb.SetConfigRequest{
-						Workers: s.State.getWorkers(),
-						Weights: s.State.Persistent.Weights,
-					}
-					// TODO: You can't carry shared state out of a mutex. You have to make a copy to read it inside SetConfig.
-					s.mut.Unlock()
-					for i := 0; i < num_retries; i++ {
-						goCtx, cancelGoCtx := context.WithTimeout(ctx, requestTimeout)
-
-						_, err = client.SetConfig(goCtx, &config)
-						// TODO: Retry infinitely. Sleep between retries. Break the loop when the error is "cancelled".
-						if err != nil {
-							log.Printf("failed to set config on a load balancer %s: %s", event.Name, err)
+					for {
+						s.mut.Lock()
+						config := pb.SetConfigRequest{
+							Workers: s.getWorkerListCopy(),
+							// We don't have to copy this list, because it's never modified – only replaced.
+							Weights: s.PersistentState.Weights,
 						}
-						cancelGoCtx()
-					}
-					if err != nil {
-						log.Println("retries failed")
+						s.mut.Unlock()
+						log.Printf("Pushing new config to load balancer %s\n", event.Name)
+						requestCtx, cancelRequestCtx := context.WithTimeout(lbCtx, requestTimeout)
+						_, err = client.SetConfig(requestCtx, &config)
+						cancelRequestCtx()
+						if err != nil {
+							switch status.Code(err) {
+							case codes.Canceled:
+								log.Printf("Disconnected from load balancer %s\n", event.Name, err)
+								return
+							default:
+								log.Printf("Failed to push config to load balancer %s: %s. Retrying in 1 second.\n", event.Name, err)
+								select {
+								case <-lbCtx.Done():
+									log.Printf("Disconnected from load balancer %s\n", event.Name, err)
+									return
+								case <-time.After(1 * time.Second):
+								}
+							}
+						} else {
+							log.Printf("Pushed new config to load balancer %s\n", event.Name)
+							break
+						}
 					}
 				}
 			}()
-			s.State.LoadBalancers[*event.Name] = LBInfo{
-				conn:        *conn,
-				cancelCtx:   cancelCtx,
+			s.LoadBalancers[event.Name] = LBInfo{
+				conn:        conn,
+				cancelCtx:   cancelLbCtx,
 				commandChan: cmdChan,
 			}
-		case REMOVE_POD:
-			if lbInfo, isLb := s.State.LoadBalancers[*event.Name]; isLb {
-				delete(s.State.LoadBalancers, *event.Name)
-				lbInfo.cancelCtx()
-				lbInfo.conn.Close()
-				close(lbInfo.commandChan)
-			} else {
-				s.mut.Lock()
-				_, isWorker := s.State.Linters[*event.Name]
-				if isWorker {
-					delete(s.State.Linters, *event.Name)
-				}
-				s.mut.Unlock()
-				if isWorker {
-					s.pushLoadbalancerProportions()
-				}
-			}
+			scheduleUpdate()
+			log.Printf("Added load balancer %s\n", event.Name)
+		case REMOVE_LB:
+			log.Printf("Removing load balancer %s\n", event.Name)
+			lbInfo := s.LoadBalancers[event.Name]
+			delete(s.LoadBalancers, event.Name)
+			lbInfo.cancelCtx()
+			lbInfo.conn.Close()
+			close(lbInfo.commandChan)
+			log.Printf("Removed load balancer %s\n", event.Name)
+		case REMOVE_WORKER:
+			log.Printf("Removing linter %s\n", event.Name)
+			s.mut.Lock()
+			delete(s.Linters, event.Name)
+			s.mut.Unlock()
+			scheduleUpdate()
+			log.Printf("Removed linter %s\n", event.Name)
+		case PERSISTENT_STATE_UDPATED:
+			log.Printf("Updated version load proportions\n")
 		default:
-			log.Printf("wrong PodEvent type: %d", event.Type)
+			log.Printf("Unknown PodEvent type: %d\n", event.Type)
 		}
 	}
 }
 
 func main() {
 	flag.Parse()
-	machine_manager := makeMachineManager()
+	log.Printf("Starting machine manager\n")
 
-	lis, err := net.Listen("tcp", *listen_addr)
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+	mux := http.NewServeMux()
+	healthcheck := func(res http.ResponseWriter, req *http.Request) {
+		ioutil.ReadAll(req.Body)
+		fmt.Fprintf(res, "Healthy\n")
 	}
+	mux.HandleFunc("/health", healthcheck)
+	s := http.Server{
+		Addr:    *health_addr,
+		Handler: mux,
+	}
+	go func() {
+		log.Fatal(s.ListenAndServe())
+	}()
 
-	var server_opts []grpc.ServerOption
-	grpcServer := grpc.NewServer(server_opts...)
+	lis, err := net.Listen("tcp", *admin_addr)
+	if err != nil {
+		log.Fatalf("Failed to listen on address %s: %s\n", *admin_addr, err)
+	}
+	log.Printf("Listening on %s\n", *admin_addr)
+
+	machine_manager := makeMachineManager()
+	go machine_manager.handlePodEvents()
+	go machine_manager.stateUpdater()
+	go runReconciler(machine_manager.eventChan)
+
+	grpcServer := grpc.NewServer()
 	pb.RegisterMachineManagerServer(grpcServer, &machine_manager)
-
-	go log.Fatal(grpcServer.Serve(lis))
-	machine_manager.handlePodEvents()
+	log.Fatal(grpcServer.Serve(lis))
 }

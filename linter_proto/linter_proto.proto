@@ -32,8 +32,7 @@ message Weight {
 
 message Worker {
     string address = 1;
-    int32 port = 2;
-    LinterAttributes attrs = 3;
+    LinterAttributes attrs = 2;
 }
 
 message SetConfigRequest {

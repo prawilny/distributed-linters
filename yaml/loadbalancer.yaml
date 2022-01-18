@@ -7,13 +7,9 @@ metadata:
 spec:
   type: LoadBalancer
   ports:
-  - name: http-port
-    port: 22222
-    targetPort: 22222
-    protocol: TCP
-  - name: grpc-port
-    port: 33333
-    targetPort: 33333
+  - name: data
+    port: 20000
+    targetPort: 20000
     protocol: TCP
   selector:
     app: loadbalancer
@@ -37,8 +33,15 @@ spec:
     spec:
       containers:
       - name: loadbalancer
-        image: loadbalancer_container
+        image: localhost/loadbalancer_container
         imagePullPolicy: Never
         ports:
-        - containerPort: 22222
-        - containerPort: 33333
+        - containerPort: 10000
+          name: admin
+        - containerPort: 20000
+          name: data
+        args: ["-data-addr=:20000", "-admin-addr=:10000"]
+        livenessProbe:
+          httpGet:
+            path: "/health"
+            port: 20000
