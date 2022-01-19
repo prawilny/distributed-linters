@@ -568,6 +568,7 @@ func (s *MachineManagerServer) handlePodEvents() {
 			scheduleUpdate()
 			log.Printf("Removed linter %s\n", event.Name)
 		case PERSISTENT_STATE_UDPATED:
+			scheduleUpdate()
 			log.Printf("Updated version load proportions\n")
 		default:
 			log.Printf("Unknown PodEvent type: %d\n", event.Type)
