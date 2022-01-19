@@ -13,7 +13,7 @@ image_upload: machine_manager_image_upload loadbalancer_image_upload python_lint
 	docker tag $* europe-central2-docker.pkg.dev/irio-linter/irio/$*
 
 %_image_upload: %_image_build
-	docker push $* europe-central2-docker.pkg.dev/irio-linter/irio/$*
+	docker push europe-central2-docker.pkg.dev/irio-linter/irio/$*
 
 %.pb.go: %.proto
 	protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative $<

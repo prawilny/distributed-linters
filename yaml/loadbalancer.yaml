@@ -33,8 +33,7 @@ spec:
     spec:
       containers:
       - name: loadbalancer
-        image: localhost/loadbalancer_container
-        imagePullPolicy: Never
+        image: europe-central2-docker.pkg.dev/irio-linter/irio/loadbalancer:latest
         ports:
         - containerPort: 10000
           name: admin

@@ -339,7 +339,6 @@ func deploymentFromLabels(lang Language, ver Version, imageUrl string) appsv1.De
 						{
 							Name:            linterName,
 							Image:           imageUrl,
-							ImagePullPolicy: "Never",
 							Ports: []apiv1.ContainerPort{
 								{
 									Name:          "health",

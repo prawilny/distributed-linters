@@ -41,8 +41,7 @@ spec:
     spec:
       containers:
       - name: machine-manager
-        image: localhost/machine_manager_container
-        imagePullPolicy: Never
+        image: europe-central2-docker.pkg.dev/irio-linter/irio/machine_manager:latest
         ports:
         - containerPort: 10000
           name: admin
