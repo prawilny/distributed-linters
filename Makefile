@@ -4,8 +4,8 @@ GO_LINK_FLAGS := -ldflags="-s -w"
 PROTOS := linter_proto/linter_proto.pb.go linter_proto/linter_proto_grpc.pb.go
 
 all: image_build
-image_build: machine_manager_image_build loadbalancer_image_build python_linter_image_build
-image_upload: machine_manager_image_upload loadbalancer_image_upload python_linter_image_upload
+image_build: machine_manager_image_build loadbalancer_image_build python_linter_image_build java_linter_image_build
+image_upload: machine_manager_image_upload loadbalancer_image_upload python_linter_image_upload java_linter_image_upload
 
 %_image_build: %/Dockerfile %/%
 	#minikube ssh -- sudo podman build /host --tag $@ --target $*
