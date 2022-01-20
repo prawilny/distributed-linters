@@ -367,8 +367,8 @@ func deploymentFromLabels(lang Language, ver Version, imageUrl string) appsv1.De
 				Spec: apiv1.PodSpec{
 					Containers: []apiv1.Container{
 						{
-							Name:            linterName,
-							Image:           imageUrl,
+							Name:  linterName,
+							Image: imageUrl,
 							Ports: []apiv1.ContainerPort{
 								{
 									Name:          "health",
@@ -405,6 +405,11 @@ func (s *MachineManagerPersistentState) linterWeight(lang Language, ver Version)
 		}
 	}
 	return 0
+}
+
+func (s *MachineManagerServer) ListVersions(ctx context.Context, req *pb.Language) (*pb.LoadBalancingProportions, error) {
+	// We don't have to copy this list, because it's never modified – only replaced.
+	return &pb.LoadBalancingProportions{Weights: s.PersistentState.Weights}, nil
 }
 
 func (s *MachineManagerServer) AppendLinter(ctx context.Context, req *pb.AppendLinterRequest) (*pb.LinterResponse, error) {
