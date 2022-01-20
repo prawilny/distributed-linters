@@ -47,7 +47,6 @@ metadata:
   labels:
     app: linter
 spec:
-  type: LoadBalancer
   ports:
   - name: data
     port: 20000
