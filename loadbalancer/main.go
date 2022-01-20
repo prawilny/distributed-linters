@@ -6,20 +6,17 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-
-	//"path"
-	pb "irio/linter_proto"
 	"net"
 	"net/http"
 	"sync"
 	"time"
 
+	pb "irio/linter_proto"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/status"
-
-	//"github.com/davecgh/go-spew/spew"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -172,7 +169,6 @@ func (s *loadBalancerServer) SetConfig(ctx context.Context, req *pb.SetConfigReq
 }
 
 func (lbServer *loadBalancerServer) handleLintRequest(res http.ResponseWriter, req *http.Request) bool {
-	//p := path.Base(req.URL.Path)
 	lang := req.URL.Query()["lang"][0]
 
 	body, err := ioutil.ReadAll(req.Body)

@@ -2,34 +2,24 @@ package main
 
 import (
 	"context"
-	//"encoding/json"
 	"flag"
 	"fmt"
-	"net/http"
-
-	//"io"
 	"io/ioutil"
 	"log"
-
-	//"math"
 	"net"
+	"net/http"
 	"regexp"
 	"unicode/utf8"
 
-	//"sync"
-	//"time"
+	pb "irio/linter_proto"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	//"google.golang.org/grpc/credentials"
-	//"google.golang.org/grpc/examples/data"
-	//"github.com/golang/protobuf/proto"
-	pb "irio/linter_proto"
 )
 
 func merge(a []int, b []int) []int {
