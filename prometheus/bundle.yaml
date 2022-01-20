@@ -25860,6 +25860,11 @@ spec:
         app.kubernetes.io/name: prometheus-operator
         app.kubernetes.io/version: 0.53.1
     spec:
+      tolerations:
+      - key: reserved-pool
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
       containers:
       - args:
         - --kubelet-service=kube-system/kubelet

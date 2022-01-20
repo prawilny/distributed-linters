@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: load
+  labels:
+    app: load
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  replicas: 3
+  selector:
+    matchLabels:
+      app: load
+  template:
+    metadata:
+      labels:
+        app: load
+    spec:
+      tolerations:
+      - key: reserved-pool
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+      containers:
+      - name: load
+        image: europe-central2-docker.pkg.dev/irio-test-338916/irio-test/load
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "400m"
+          limits:
+            memory: "64Mi"
+            cpu: "400m"
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: load
+  labels:
+    app: load
+spec:
+  endpoints:
+  - interval: 1s
+    port: metrics
+  selector:
+    matchLabels:
+      app: load
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: load
+  labels:
+    app: load
+spec:
+  ports:
+  - name: metrics
+    port: 40000
+    targetPort: 40000
+    protocol: TCP
+  selector:
+    app: load

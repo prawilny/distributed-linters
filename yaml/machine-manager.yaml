@@ -43,9 +43,14 @@ spec:
       labels:
         app: machine-manager
     spec:
+      tolerations:
+      - key: reserved-pool
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
       containers:
       - name: machine-manager
-        image: europe-central2-docker.pkg.dev/irio-linter/irio/machine_manager:latest
+        image: europe-central2-docker.pkg.dev/irio-test-338916/irio-test/machine_manager:latest
         ports:
         - containerPort: 10000
           name: admin
@@ -84,6 +89,10 @@ rules:
 - apiGroups: ["apps"]
   resources: ["deployments"]
   verbs: ["create", "delete"]
+- apiGroups: ["autoscaling"]
+  resources: ["horizontalpodautoscalers"]
+  verbs: ["create", "delete"]
+
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

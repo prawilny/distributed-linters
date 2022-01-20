@@ -5,15 +5,14 @@ PROTOS := linter_proto/linter_proto.pb.go linter_proto/linter_proto_grpc.pb.go
 
 all: image_build
 image_build: machine_manager_image_build loadbalancer_image_build python_linter_image_build java_linter_image_build load_image_build
-image_upload: machine_manager_image_upload loadbalancer_image_upload python_linter_image_upload java_linter_image_upload load_image_build
+image_upload: machine_manager_image_upload loadbalancer_image_upload python_linter_image_upload java_linter_image_upload load_image_upload
 
 %_image_build: %/Dockerfile %/%
-	#minikube ssh -- sudo podman build /host --tag $@ --target $*
 	docker build $*/ --tag $*
-	docker tag $* europe-central2-docker.pkg.dev/irio-linter/irio/$*
+	docker tag $* europe-central2-docker.pkg.dev/irio-test-338916/irio-test/$*
 
 %_image_upload: %_image_build
-	docker push europe-central2-docker.pkg.dev/irio-linter/irio/$*
+	docker push europe-central2-docker.pkg.dev/irio-test-338916/irio-test/$*
 
 %.pb.go: %.proto
 	protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative $<

@@ -23,6 +23,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	apiv1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -249,7 +250,7 @@ func (mms *MachineManagerServer) getWorkerListCopy() []*pb.Worker {
 
 func runReconciler(eventChan chan *PodEvent) {
 	manager, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Namespace: "default",
+		Namespace: apiv1.NamespaceDefault,
 	})
 	if err != nil {
 		panic("couldn't create manager: " + err.Error())
@@ -336,6 +337,25 @@ func makeMachineManager() MachineManagerServer {
 
 func int32Ptr(i int32) *int32 { return &i }
 
+func autoscalingFromAttrs(lang Language, ver Version) autoscalingv1.HorizontalPodAutoscaler {
+	name := deploymentNameFromAttrs(lang, ver)
+	return autoscalingv1.HorizontalPodAutoscaler{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: autoscalingv1.HorizontalPodAutoscalerSpec{
+			MinReplicas: int32Ptr(3),
+			MaxReplicas: 20,
+			ScaleTargetRef: autoscalingv1.CrossVersionObjectReference{
+				APIVersion: "apps/v1",
+				Kind:       "deployment",
+				Name:       name,
+			},
+			TargetCPUUtilizationPercentage: int32Ptr(75),
+		},
+	}
+}
+
 func deploymentNameFromAttrs(lang Language, ver Version) string {
 	return fmt.Sprintf("linter-%s-%s", string(lang), strings.ReplaceAll(string(ver), ".", "-"))
 }
@@ -388,16 +408,24 @@ func deploymentFromLabels(lang Language, ver Version, imageUrl string) appsv1.De
 									},
 								},
 							},
-                            Resources: apiv1.ResourceRequirements{
-                                Limits: apiv1.ResourceList{
-                                    "cpu":    resource.MustParse("500m"),
-                                    "memory": resource.MustParse("64Mi"),
-                                },
-                                Requests: apiv1.ResourceList{
-                                    "cpu":    resource.MustParse("500m"),
-                                    "memory": resource.MustParse("64Mi"),
-                                },
-                            },
+							Resources: apiv1.ResourceRequirements{
+								Limits: apiv1.ResourceList{
+									"cpu":    resource.MustParse("500m"),
+									"memory": resource.MustParse("64Mi"),
+								},
+								Requests: apiv1.ResourceList{
+									"cpu":    resource.MustParse("500m"),
+									"memory": resource.MustParse("64Mi"),
+								},
+							},
+						},
+					},
+					Tolerations: []apiv1.Toleration{
+						{
+							Key:      "reserved-pool",
+							Operator: apiv1.TolerationOpEqual,
+							Value:    "true",
+							Effect:   apiv1.TaintEffectNoSchedule,
 						},
 					},
 				},
@@ -416,6 +444,8 @@ func (s *MachineManagerPersistentState) linterWeight(lang Language, ver Version)
 }
 
 func (s *MachineManagerServer) ListVersions(ctx context.Context, req *pb.Language) (*pb.LoadBalancingProportions, error) {
+	s.mut.Lock()
+	defer s.mut.Unlock()
 	// We don't have to copy this list, because it's never modified – only replaced.
 	return &pb.LoadBalancingProportions{Weights: s.PersistentState.Weights}, nil
 }
@@ -425,9 +455,16 @@ func (s *MachineManagerServer) AppendLinter(ctx context.Context, req *pb.AppendL
 	ctx, cancelCtx := context.WithTimeout(context.Background(), requestTimeout)
 	defer cancelCtx()
 
+	autoscalingClient := s.kubernetes.AutoscalingV1().HorizontalPodAutoscalers(apiv1.NamespaceDefault)
+	autoscaling := autoscalingFromAttrs(Language(req.Attrs.Language), Version(req.Attrs.Version))
+	_, err := autoscalingClient.Create(ctx, &autoscaling, metav1.CreateOptions{})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Error creating linter autoscaling %s: %s\n", &autoscaling.ObjectMeta.Name, err)
+	}
+
 	deploymentsClient := s.kubernetes.AppsV1().Deployments(apiv1.NamespaceDefault)
 	deployment := deploymentFromLabels(Language(req.Attrs.Language), Version(req.Attrs.Version), req.ImageUrl)
-	_, err := deploymentsClient.Create(ctx, &deployment, metav1.CreateOptions{})
+	_, err = deploymentsClient.Create(ctx, &deployment, metav1.CreateOptions{})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Error creating linter deployment %s: %s\n", deployment.ObjectMeta.Name, err)
 	}
@@ -456,6 +493,17 @@ func (s *MachineManagerServer) RemoveLinter(ctx context.Context, req *pb.LinterA
 			return nil, status.Errorf(codes.Internal, "Error removing linter deployment %s: %s\n", deploymentName, err)
 		}
 	}
+	autoscalingName := deploymentNameFromAttrs(lang, ver)
+	autoscalingClient := s.kubernetes.AutoscalingV1().HorizontalPodAutoscalers(apiv1.NamespaceDefault)
+	err = autoscalingClient.Delete(ctx, autoscalingName, metav1.DeleteOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, status.Errorf(codes.FailedPrecondition, "Error removing linter autoscaling %s: no such autoscaling\n", autoscalingName)
+		} else {
+			return nil, status.Errorf(codes.Internal, "Error removing linter autoscaling %s: %s\n", autoscalingName, err)
+		}
+	}
+
 	return &pb.LinterResponse{Code: pb.LinterResponse_SUCCESS}, nil
 }
 

@@ -11,7 +11,11 @@ spec:
   replicas: 2
   resources:
     requests:
-      memory: 400Mi
+      memory: "1024Mi"
+      cpu: "750m"
+    limits:
+      memory: "1024Mi"
+      cpu: "750m"
   securityContext:
     fsGroup: 2000
     runAsNonRoot: true
@@ -19,6 +23,11 @@ spec:
   serviceAccountName: prometheus
   version: v2.22.1
   serviceMonitorSelector: {}
+  tolerations:
+  - key: reserved-pool
+    operator: Equal
+    value: "true"
+    effect: NoSchedule
 ---
 apiVersion: v1
 kind: Service

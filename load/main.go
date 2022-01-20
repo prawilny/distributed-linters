@@ -2,50 +2,57 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"sync"
-	"time"
-	"fmt"
-	"flag"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+const PORT = 40000
+
 var (
-	target_addr = flag.String("target-addr", "", "The target loadbalancer data port")
+	lintCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "load_lints",
+		Help: "The total number of lints performed by the program so far",
+	})
+	LOAD_BALANCER_HOST = os.Getenv("LOADBALANCER_SERVICE_HOST")
+	LOAD_BALANCER_PORT = os.Getenv("LOADBALANCER_SERVICE_PORT_DATA")
 )
 
 func main() {
-    flag.Parse()
-    if len(*target_addr) == 0 {
-        log.Fatalf("No -target-addr given\n")
-    }
-	mut := sync.Mutex{}
-	counter := 0
 	tr := &http.Transport{
 		MaxConnsPerHost: 50,
 	}
 	client := &http.Client{Transport: tr}
-	ticker := time.NewTicker(time.Second)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/metrics", func(res http.ResponseWriter, req *http.Request) {
+		promhttp.Handler().ServeHTTP(res, req)
+	})
+	s := http.Server{
+		Addr:    fmt.Sprintf(":%d", PORT),
+		Handler: mux,
+	}
 	go func() {
-		for _ = range ticker.C {
-			mut.Lock()
-			x := counter
-			counter = 0
-			mut.Unlock()
-			log.Printf("%d\n", x)
-		}
+		log.Fatal(s.ListenAndServe())
 	}()
-    query := fmt.Sprintf("http://%s/lint?lang=python", *target_addr)
+
+	query := fmt.Sprintf("http://%s:%s/lint?lang=python", LOAD_BALANCER_HOST, LOAD_BALANCER_PORT)
 	var wg sync.WaitGroup
 	for i := 0; i < 50; i += 1 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for {
-				req, err := http.NewRequest("POST", query, bytes.NewBuffer([]byte(`a=b 
-c= d 
-e =f 
+				req, err := http.NewRequest("POST", query, bytes.NewBuffer([]byte(`a=b
+c= d
+e =f
 g = h`)))
 				if err != nil {
 					log.Fatalf("Could not create the request %s\n", err)
@@ -55,9 +62,7 @@ g = h`)))
 					panic(err.Error())
 				}
 				ioutil.ReadAll(resp.Body)
-				mut.Lock()
-				counter += 1
-				mut.Unlock()
+				lintCounter.Inc()
 			}
 		}()
 	}
