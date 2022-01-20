@@ -19,15 +19,15 @@ var (
 
 	addVersion   = flag.NewFlagSet("add_version", flag.ExitOnError)
 	imageUrl     = addVersion.String("image_url", "(invalid)", "The linter container image url")
-	language_add = addVersion.String("language", "forth", "Language to be used")
+	language_add = addVersion.String("language", "python", "Language to be used")
 	version_add  = addVersion.String("version", "(optimized out)", "Version")
 
 	removeVersion   = flag.NewFlagSet("remove_version", flag.ExitOnError)
-	language_remove = removeVersion.String("language", "forth", "Language to be used")
+	language_remove = removeVersion.String("language", "python", "Language to be used")
 	version_remove  = removeVersion.String("version", "(optimized out)", "Version")
 
 	listVersions  = flag.NewFlagSet("list_versions", flag.ExitOnError)
-	language_list = listVersions.String("language", "forth", "Language to show versions")
+	language_list = listVersions.String("language", "python", "Language to show versions")
 
 	transportCreds = grpc.WithTransportCredentials(insecure.NewCredentials())
 )
@@ -99,8 +99,8 @@ func set_proportions(args []string) {
 	cmdArgs := []*pb.Weight{}
 	for i := 0; i < len(args); i += 3 {
 		f, err := strconv.ParseFloat(args[i+2], 32)
-		if err != nil || f <= 0 {
-			log.Fatalf("%s is not a real positive float", args[i+2])
+		if err != nil || f < 0 {
+			log.Fatalf("%s is not a real nonnegative` float", args[i+2])
 		}
 		cmdArgs = append(cmdArgs, &pb.Weight{
 			Attrs:  &pb.LinterAttributes{Language: args[i], Version: args[i+1]},
@@ -134,7 +134,14 @@ func list_versions(args []string) {
 	if err != nil {
 		log.Fatalf("listing versions failed: %v", err)
 	}
-	log.Printf("Got response: %s", r.String())
+
+	versions := []string{}
+	for _, v := range r.Weights {
+		if v.Weight > 0 {
+			versions = append(versions, v.Attrs.Version)
+		}
+	}
+	log.Printf("Versions: %v", versions)
 }
 
 func main() {
