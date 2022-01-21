@@ -32,6 +32,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	ctrlClient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -387,6 +388,16 @@ func deploymentFromLabels(lang Language, ver Version, imageUrl string) appsv1.De
 									},
 								},
 							},
+                            Resources: apiv1.ResourceRequirements{
+                                Limits: apiv1.ResourceList{
+                                    "cpu":    resource.MustParse("500m"),
+                                    "memory": resource.MustParse("64Mi"),
+                                },
+                                Requests: apiv1.ResourceList{
+                                    "cpu":    resource.MustParse("500m"),
+                                    "memory": resource.MustParse("64Mi"),
+                                },
+                            },
 						},
 					},
 				},

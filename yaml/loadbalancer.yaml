@@ -44,3 +44,10 @@ spec:
           httpGet:
             path: "/health"
             port: 20000
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "500m"
+          limits:
+            memory: "64Mi"
+            cpu: "500m"

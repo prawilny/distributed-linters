@@ -56,6 +56,13 @@ spec:
           httpGet:
             path: "/health"
             port: 60000
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+          limits:
+            memory: "64Mi"
+            cpu: "250m"
       serviceAccountName: machine-user
 ---
 apiVersion: rbac.authorization.k8s.io/v1
