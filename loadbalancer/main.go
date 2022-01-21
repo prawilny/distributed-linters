@@ -205,7 +205,6 @@ func (lbServer *loadBalancerServer) handleLintRequest(res http.ResponseWriter, r
 	var ws *workerState
 	var addr addressPort
 	for a, w := range lbServer.config[lang].workers[version] {
-		fmt.Printf("%v\n", w.connection.GetState())
 		switch w.connection.GetState() {
 		case connectivity.Idle, connectivity.Ready:
 			if ws == nil || w.queueLength < ws.queueLength {
